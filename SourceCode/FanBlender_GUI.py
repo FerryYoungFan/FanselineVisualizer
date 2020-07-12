@@ -25,11 +25,12 @@ pydub		    V0.24.1*
 
 """
 
-
 # GUI Language
 lang = lang_en
 lang_code = "en"
-#lang = lang_cn_s
+
+
+# lang = lang_cn_s
 
 def clog(content="", insertloc='end'):
     global scr
@@ -57,7 +58,7 @@ class InfoBridge:
             self.progressbar(0, 100)
             btn_blend["text"] = lang["Stop Blending"]
             isRunning = True
-            root.title(lang["Fanseline Audio Visualizer"]+" "+lang["(Running)"])
+            root.title(lang["Fanseline Audio Visualizer"] + " " + lang["(Running)"])
         else:
             fg = "normal"
             self.progressbar(0, 100)
@@ -69,7 +70,7 @@ class InfoBridge:
                 entry_low, entry_up, entry_bins, entry_scalar, list_color, list_bra, check_normal, list_preseta,
                 list_presetv, btn_prev, entry_output, label_mp4, label_textplz, label_font, label_size, label_mul,
                 label_fps, label_brv, label_range, label_to, label_hz, label_bins, label_scalar, label_color,
-                label_bra, label_kbps, label_preseta, label_presetv, list_lang,label_lang]
+                label_bra, label_kbps, label_preseta, label_presetv, list_lang, label_lang]
         for el in elem:
             el["state"] = fg
 
@@ -406,8 +407,9 @@ def saveLanguage():
     with open('./Source/language.pickle', 'wb') as handle:
         pickle.dump(lang_code, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
+
 def loadLanguage():
-    global lang,lang_code
+    global lang, lang_code
     lang_code = "en"
     try:
         with open('./Source/language.pickle', 'rb') as handle:
@@ -420,24 +422,24 @@ def loadLanguage():
     else:
         lang = lang_en
 
+
 def resetGUI(*args):
-    global lang_code,exit_flag,root,list_lang
-    #lang_code = lc
+    global lang_code, exit_flag, root, list_lang
+    # lang_code = lc
     if list_lang.get() == "简体中文":
         lang_code = "cn_s"
     else:
         lang_code = "en"
     saveConfig()
     saveLanguage()
-    exit_flag=False
+    exit_flag = False
     root.destroy()
-
 
 
 if __name__ == '__main__':
     exit_flag = False
     while not exit_flag:
-        exit_flag =True
+        exit_flag = True
 
         root = tk.Tk()
         loadLanguage()
@@ -484,7 +486,7 @@ if __name__ == '__main__':
         label_lang = tk.Label(master=frame1, textvariable=tk.StringVar(value="Language/语言:"))
         label_lang.place(relwidth=0.1, relheight=relh, relx=0.05, rely=rely, anchor='nw')
         list_lang = ttk.Combobox(master=frame1, textvariable=tk_lang, state="readonly")
-        list_lang["values"] = ("English","简体中文")
+        list_lang["values"] = ("English", "简体中文")
         if lang_code == "cn_s":
             list_lang.current(1)
         else:
@@ -624,12 +626,12 @@ if __name__ == '__main__':
         label_preseta.place(relwidth=0.1, relheight=relh, relx=0.05, rely=rely, anchor='nw')
         list_preseta = ttk.Combobox(master=frame1, textvariable=tk_preseta, state="readonly")
         audio_dic = {
-            lang["Music-HQ"]+" (320 kbps)": [320, 20, 2500, False, 1.0],
-            lang["Music-MQ"]+" (128 kbps)": [128, 20, 2500, False, 1.0],
-            lang["Music-LQ"]+" (48 kbps)": [48, 20, 2500, False, 1.0],
-            lang["Voice-HQ"]+" (320 kbps)": [320, 80, 2000, True, 0.5],
-            lang["Voice-MQ"]+" (128 kbps)": [128, 80, 2000, True, 0.5],
-            lang["Voice-LQ"]+" (48 kbps)": [48, 80, 2000, True, 0.5],
+            lang["Music-HQ"] + " (320 kbps)": [320, 20, 2500, False, 1.0],
+            lang["Music-MQ"] + " (128 kbps)": [128, 20, 2500, False, 1.0],
+            lang["Music-LQ"] + " (48 kbps)": [48, 20, 2500, False, 1.0],
+            lang["Voice-HQ"] + " (320 kbps)": [320, 80, 2000, True, 0.5],
+            lang["Voice-MQ"] + " (128 kbps)": [128, 80, 2000, True, 0.5],
+            lang["Voice-LQ"] + " (48 kbps)": [48, 80, 2000, True, 0.5],
         }
         list_preseta["values"] = dict2tuple(audio_dic)
         list_preseta.current(0)
@@ -641,18 +643,18 @@ if __name__ == '__main__':
         label_presetv.place(relwidth=0.1, relheight=relh, relx=0.4, rely=rely, anchor='nw')
         list_presetv = ttk.Combobox(master=frame1, textvariable=tk_presetv, state="readonly")
         video_dic = {
-            lang["Square"]+"720p(720x720:30)": [720, 720, 30, getDefaultBR(720, 720, 30, 4)],
-            lang["Square"]+"1080p(1080x1080:30)": [1080, 1080, 30, getDefaultBR(1080, 1080, 30, 5)],
-            lang["Square"]+"1024p(1024x1024:30)": [1024, 1024, 30, getDefaultBR(1024, 1024, 30, 5)],
-            lang["Square"]+"512p(512x512:30)": [512, 512, 30, getDefaultBR(512, 512, 30, 4)],
-            lang["Square"]+"480p(480x480:30)": [480, 480, 30, getDefaultBR(480, 480, 30, 4)],
+            lang["Square"] + "720p(720x720:30)": [720, 720, 30, getDefaultBR(720, 720, 30, 4)],
+            lang["Square"] + "1080p(1080x1080:30)": [1080, 1080, 30, getDefaultBR(1080, 1080, 30, 5)],
+            lang["Square"] + "1024p(1024x1024:30)": [1024, 1024, 30, getDefaultBR(1024, 1024, 30, 5)],
+            lang["Square"] + "512p(512x512:30)": [512, 512, 30, getDefaultBR(512, 512, 30, 4)],
+            lang["Square"] + "480p(480x480:30)": [480, 480, 30, getDefaultBR(480, 480, 30, 4)],
             "1080p (1920x1080:30)": [1920, 1080, 30, getDefaultBR(1920, 1080, 30, 5)],
             "720p (1280x720:30)": [1280, 720, 30, getDefaultBR(1280, 720, 30, 4)],
             "480p (854x480:30)": [854, 480, 30, getDefaultBR(854, 480, 30, 4)],
-            lang["Portrait"]+"1080p (1080x1920:30)": [1080, 1920, 30, getDefaultBR(1920, 1080, 30, 5)],
-            lang["Portrait"]+"720p (720x1280:30)": [720, 1280, 30, getDefaultBR(1280, 720, 30, 4)],
-            lang["Portrait"]+"480p (480x854:30)": [480, 854, 30, getDefaultBR(854, 480, 30, 4)],
-            "2k"+lang["(Slow)"] +"(2560x1440:30)": [2560, 1440, 30, getDefaultBR(2560, 1440, 30, 5)],
+            lang["Portrait"] + "1080p (1080x1920:30)": [1080, 1920, 30, getDefaultBR(1920, 1080, 30, 5)],
+            lang["Portrait"] + "720p (720x1280:30)": [720, 1280, 30, getDefaultBR(1280, 720, 30, 4)],
+            lang["Portrait"] + "480p (480x854:30)": [480, 854, 30, getDefaultBR(854, 480, 30, 4)],
+            "2k" + lang["(Slow)"] + "(2560x1440:30)": [2560, 1440, 30, getDefaultBR(2560, 1440, 30, 5)],
         }
         list_presetv["values"] = dict2tuple(video_dic)
         list_presetv.current(0)
@@ -665,7 +667,7 @@ if __name__ == '__main__':
 
         rely += devy
         scr = scrolledtext.ScrolledText(master=frame1, width=20, height=10)
-        scr.place(relwidth=0.9, relheight=relh*7.8, relx=0.05, rely=rely, anchor='nw')
+        scr.place(relwidth=0.9, relheight=relh * 7.8, relx=0.05, rely=rely, anchor='nw')
 
         rely += 0.33
 
@@ -677,10 +679,9 @@ if __name__ == '__main__':
 
         loadConfig()
 
-        clog("*"*35+ " "+ lang["Welcome to use"]+" "+lang["Fanseline Audio Visualizer"]+"!"\
-             +" "+"*"*35+"\n"+"\n")
+        clog("*" * 35 + " " + lang["Welcome to use"] + " " + lang["Fanseline Audio Visualizer"] + "!" \
+             + " " + "*" * 35 + "\n" + "\n")
 
         frame1.tkraise()
         root.iconphoto(False, tk.PhotoImage(file='./Source/icon-small.png'))
         root.mainloop()
-

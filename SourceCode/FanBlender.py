@@ -25,7 +25,7 @@ pydub		    V0.24.1*
 
 """
 
-__version__ = "1.0.5"
+__version__ = "1.0.2"
 
 class blendingThread(threading.Thread):
     def __init__(self, threadID, name, counter, parent):
