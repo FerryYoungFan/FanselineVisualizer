@@ -1,7 +1,7 @@
 lang_cn_s = {
-    "Stop Blending": "取消渲染",
-    "Fanseline Audio Visualizer (Running)": "帆室邻音频可视化视频制作工具（渲染中）",
     "Fanseline Audio Visualizer": "帆室邻音频可视化视频制作工具",
+    "Stop Blending": "取消渲染",
+    "(Running)": "（渲染中）",
     "Blend & Export": "渲染输出",
     "Image Selected: ": "已选择图片： ",
     "Logo Selected: ": "已选择图标： ",
@@ -71,7 +71,7 @@ lang_cn_s = {
     "Portrait": "竖屏",
     "(Slow)": "(缓慢)",
     "Preview": "预览",
-    "Welcome to use":"欢迎使用",
+    "Welcome to use": "欢迎使用",
 }
 
 lang_keys = list(lang_cn_s.keys())

@@ -6,7 +6,8 @@ def ffcmd(args=""):
     ffpath = imageio_ffmpeg.get_ffmpeg_exe()
     cmd = ffpath + " " + args
     print("ffmpeg: ", cmd)
-    with subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE) as p:
+
+    with subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True) as p:
         output, errors = p.communicate()
         lines = output.decode('utf-8').splitlines()
         if len(lines) != 0:

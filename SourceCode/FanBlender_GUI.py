@@ -36,6 +36,7 @@ def clog(content="", insertloc='end'):
     scr.configure(state='normal')
     scr.insert(insertloc, content)
     scr.configure(state='disable')
+    scr.see("end")
 
 
 class InfoBridge:
@@ -56,7 +57,7 @@ class InfoBridge:
             self.progressbar(0, 100)
             btn_blend["text"] = lang["Stop Blending"]
             isRunning = True
-            root.title(lang["Fanseline Audio Visualizer (Running)"])
+            root.title(lang["Fanseline Audio Visualizer"]+" "+lang["(Running)"])
         else:
             fg = "normal"
             self.progressbar(0, 100)
@@ -288,6 +289,7 @@ def showPreview():
 def startBlending():
     global fb
     vdic = getAllValues()
+    print(vdic)
     if vdic["sound_path"] is None:
         tkinter.messagebox.showinfo(lang["Cannot Blend"], lang["Please select the correct audio file!"])
         return
@@ -388,6 +390,16 @@ def loadConfig():
     numCheck("br_Mbps", tk_br_video)
     numCheck("br_kbps", tk_br_audio)
     numCheck("normal", tk_audio_normal)
+
+    if vdic["color"] is not None:
+        color_prev = None
+        for cname, ccode in color_dic.items():
+            if ccode == vdic["color"]:
+                color_prev = cname
+                break
+        if color_prev is not None:
+            tk_color.set(color_prev)
+
 
 def saveLanguage():
     global lang, lang_code
@@ -653,7 +665,7 @@ if __name__ == '__main__':
 
         rely += devy
         scr = scrolledtext.ScrolledText(master=frame1, width=20, height=10)
-        scr.place(relwidth=0.9, relheight=0.3, relx=0.05, rely=rely, anchor='nw')
+        scr.place(relwidth=0.9, relheight=relh*7.8, relx=0.05, rely=rely, anchor='nw')
 
         rely += 0.33
 

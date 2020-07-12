@@ -61,7 +61,7 @@ class encodingThread(threading.Thread):
             else:
                 self.parent.log("Processing:{0}/{1}".format(self.parent.encoder_pt, self.parent.total_frames))
                 self.parent.progress(self.parent.encoder_pt,self.parent.total_frames)
-                time.sleep(5.0)
+                time.sleep(3.0)
         self.parent.log("Processing:{0}/{1}".format(self.parent.encoder_pt, self.parent.total_frames))
         self.parent.progress(self.parent.encoder_pt, self.parent.total_frames)
         if self.parent.encoder_pt >= self.parent.total_frames:
@@ -123,7 +123,7 @@ class FanBlender:
         self._blur = int(round(2 / 1080 * self._frame_size))
         self._blur_bg = int(round(41 / 1080 * self._frame_size))
         self._line_thick = int(round(4 / 1080 * self._frame_size))
-        self._amplify = self.scalar * 7 / 80 * self.bins * np.power(1500 / (self.fq_up - self.fq_low), 0.5)
+        self._amplify = self.scalar * 3 / 80 * self.bins * np.power(1500 / (self.fq_up - self.fq_low), 0.5)
 
         self.visualizer = None
         self.analyzer = None
@@ -178,6 +178,7 @@ class FanBlender:
             if os.path.isfile(image_path):
                 self.image_path = image_path
             else:
+                self.logo_path = None
                 self.fileError(image_path)
 
         if sound_path is not None:
@@ -190,6 +191,7 @@ class FanBlender:
             if os.path.isfile(logo_path):
                 self.logo_path = logo_path
             else:
+                self.logo_path = None
                 self.fileError(logo_path)
 
     def setOutputPath(self, output_path=None, filename=None):

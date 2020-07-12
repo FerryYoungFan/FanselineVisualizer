@@ -91,7 +91,7 @@ def getColor(bins,index,color_mode="color4x"):
     if color_mode == "red":
         return hsv_to_rgb(0, sat, brt) + (255,)
     if color_mode == "green":
-        return hsv_to_rgb(129/360, sat, brt) + (255,)
+        return hsv_to_rgb(120/360, sat, brt) + (255,)
     if color_mode == "blue":
         return hsv_to_rgb(211/360, sat, brt) + (255,)
     if color_mode == "yellow":
@@ -103,13 +103,13 @@ def getColor(bins,index,color_mode="color4x"):
     if color_mode == "cyan":
         return hsv_to_rgb(184/360, sat, brt) + (255,)
     if color_mode == "lightgreen":
-        return hsv_to_rgb(171/360, sat, brt) + (255,)
+        return hsv_to_rgb(135/360, sat, brt) + (255,)
     if color_mode == "green-blue":
         return hsv_to_rgb(getCycleHue(122,220,bins,index,4), sat, brt) + (255,)
     if color_mode == "magenta-purple":
         return hsv_to_rgb(getCycleHue(300,370,bins,index,4), sat, brt) + (255,)
     if color_mode == "red-yellow":
-        return hsv_to_rgb(getCycleHue(-20,40,bins,index,4), sat, brt) + (255,)
+        return hsv_to_rgb(getCycleHue(-5,40,bins,index,4), sat, brt) + (255,)
     if color_mode == "yellow-green":
         return hsv_to_rgb(getCycleHue(42,147,bins,index,4), sat, brt) + (255,)
     if color_mode == "blue-purple":
