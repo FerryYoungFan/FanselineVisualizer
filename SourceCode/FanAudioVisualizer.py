@@ -1,7 +1,6 @@
 from FanWheels_PIL import *
 import numpy as np
 from pydub import AudioSegment
-from operator import add
 
 
 class AudioAnalyzer:
@@ -82,11 +81,6 @@ class AudioAnalyzer:
                 left, right = getRange(self, index + i, fq_low)
                 freq_acc += self.fftAnalyzer(left, right, fq_low, fq_up, bins)
             return freq_acc/fcount
-
-        # list(map(add, list1, list2))
-        # myList = [10, 20, 30, 40, 50, 60, 70, 80, 90]
-        # myInt = 10
-        # newList = [x / myInt for x in myList]
 
         else:
             left, right = getRange(self,index,fq_low)

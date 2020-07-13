@@ -325,14 +325,15 @@ def presetVideo(*args):
 
 
 def presetAudio(*args):
-    global audio_dic, tk_br_audio, tk_fq_low, tk_fq_high, tk_audio_normal, tk_scalar,tk_smooth
-    bra, low, up, normal, scale,smooth = audio_dic[list_preseta.get()]
+    global audio_dic, tk_br_audio, tk_fq_low, tk_fq_high, tk_audio_normal, tk_scalar, tk_smooth
+    bra, low, up, normal, scale, smooth = audio_dic[list_preseta.get()]
     tk_br_audio.set(bra)
     tk_fq_low.set(low)
     tk_fq_high.set(up)
     tk_audio_normal.set(normal)
     tk_scalar.set(scale)
     tk_smooth.set(smooth)
+
 
 def saveConfig():
     vdic = getAllValues()
@@ -659,12 +660,12 @@ if __name__ == '__main__':
         label_preseta.place(relwidth=0.1, relheight=relh, relx=0.05, rely=rely, anchor='nw')
         list_preseta = ttk.Combobox(master=frame1, textvariable=tk_preseta, state="readonly")
         audio_dic = {
-            lang["Music-HQ"] + " (320 kbps)": [320, 20, 2500, False, 1.0,2],
-            lang["Music-MQ"] + " (128 kbps)": [128, 20, 2500, False, 1.0,2],
-            lang["Music-LQ"] + " (48 kbps)": [48, 20, 2500, False, 1.0,2],
-            lang["Voice-HQ"] + " (320 kbps)": [320, 80, 2000, True, 1.0,3],
-            lang["Voice-MQ"] + " (128 kbps)": [128, 80, 2000, True, 1.0,3],
-            lang["Voice-LQ"] + " (48 kbps)": [48, 80, 2000, True, 1.0,3],
+            lang["Music-HQ"] + " (320 kbps)": [320, 20, 2500, False, 1.0, 2],
+            lang["Music-MQ"] + " (128 kbps)": [128, 20, 2500, False, 1.0, 2],
+            lang["Music-LQ"] + " (48 kbps)": [48, 20, 2500, False, 1.0, 2],
+            lang["Voice-HQ"] + " (320 kbps)": [320, 80, 2000, True, 1.0, 3],
+            lang["Voice-MQ"] + " (128 kbps)": [128, 80, 2000, True, 1.0, 3],
+            lang["Voice-LQ"] + " (48 kbps)": [48, 80, 2000, True, 1.0, 3],
         }
         list_preseta["values"] = dict2tuple(audio_dic)
         list_preseta.current(0)

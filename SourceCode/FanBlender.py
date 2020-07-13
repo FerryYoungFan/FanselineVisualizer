@@ -41,7 +41,7 @@ class blendingThread(threading.Thread):
             self.parent.frame_buffer.append(
                 self.parent.visualizer.getFrame(
                     self.parent.analyzer.getHistAtFrame(self.parent.frame_pt, self.parent.fq_low, self.parent.fq_up,
-                                                        self.parent.bins,self.parent.smooth),
+                                                        self.parent.bins, self.parent.smooth),
                     self.parent._amplify,
                     self.parent.spectrum_color))
             self.parent.frame_pt = self.parent.frame_pt + 1
@@ -219,7 +219,7 @@ class FanBlender:
         self.font = font
         self.font_alpha = font_alpha
 
-    def setSpec(self, bins=None, lower=None, upper=None, color=None, scalar=None,smooth=None):
+    def setSpec(self, bins=None, lower=None, upper=None, color=None, scalar=None, smooth=None):
         if bins is not None:
             if bins < 2:
                 bins = 2
@@ -455,18 +455,26 @@ class FanBlender:
 
 
 if __name__ == '__main__':
-    # Example of using FanBlender
+    # Example of Using FanBlender
 
-    fb = FanBlender()  # the blender
+    fb = FanBlender()  # Initialize Blender
     fb.setFilePath(image_path=r"./Source/fallback.png",
                    sound_path=r"./Source/test.mp3",
                    logo_path=r"./Source/logo.png")  # Set File Path
     fb.setOutputPath(output_path=r"./Output",
                      filename="test.mp4")  # Set Output Path
-    fb.setText(text="Your Text Here", font="./Source/font.otf")  # Set text at the bottom
+    fb.setText(text="Your Text Here", font="./Source/font.otf")  # Set Text at the Bottom
     fb.setSpec(bins=80, lower=20, upper=1500,
                color=fb.color_dic["Gradient: Green - Blue"],
-               scalar=1.0, smooth=5)  # Set Spectrum Style
+               scalar=1.0, smooth=5)  # Set Spectrum Style:
+    """
+    bins: Number of spectrums
+    lower: Lower Frequency
+    upper: Upper Frequency
+    color: Color of Spectrum
+    scalar: Sensitivity (Scalar) of Analyzer (Default:1.0)
+    smooth: Stabilize Spectrum (Range: 0-10)
+    """
     fb.setVideoInfo(width=520, height=520, fps=30, br_Mbps=5)  # Video info
     fb.previewBackground()  # Preview before blending
     fb.setAudioInfo(normal=False, br_kbps=192)  # Audio info

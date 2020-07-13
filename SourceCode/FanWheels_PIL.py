@@ -124,8 +124,8 @@ def glowText(img, text=None, font_size=35, font_set=None, alpha=0.5, blur=2, log
     if text:
         draw.text(((width - w) / 2 + xoffset, height - 2 * font_size), text, fill=(255, 255, 255, 255), font=_font)
     mask_blur = canvas.split()[-1]
-    mask_blur = mask_blur.filter(ImageFilter.GaussianBlur(radius=blur*2))
-    glow_text = Image.merge("RGBA",(mask_blur,mask_blur,mask_blur,mask_blur))
+    mask_blur = mask_blur.filter(ImageFilter.GaussianBlur(radius=blur * 2))
+    glow_text = Image.merge("RGBA", (mask_blur, mask_blur, mask_blur, mask_blur))
     glow_text = glow_text.resize(img.size, Image.ANTIALIAS)
     canvas = canvas.resize(img.size, Image.ANTIALIAS)
 
