@@ -70,7 +70,7 @@ class InfoBridge:
                 entry_low, entry_up, entry_bins, entry_scalar, list_color, list_bra, check_normal, list_preseta,
                 list_presetv, btn_prev, entry_output, label_mp4, label_textplz, label_font, label_size, label_mul,
                 label_fps, label_brv, label_range, label_to, label_hz, label_bins, label_scalar, label_color,
-                label_bra, label_kbps, label_preseta, label_presetv, list_lang, label_lang]
+                label_bra, label_kbps, label_preseta, label_presetv, list_lang, label_lang, label_smooth, list_smooth]
         for el in elem:
             el["state"] = fg
 
@@ -163,7 +163,7 @@ def selectFont():
 def getAllValues():
     global tk_image_path, tk_sound_path, tk_logo_path, tk_output_path, tk_filename, \
         tk_text, tk_font, tk_bins, tk_fq_low, tk_fq_high, color_dic, list_color, tk_scalar, \
-        tk_width, tk_height, tk_fps, tk_br_video, tk_br_audio, tk_audio_normal
+        tk_width, tk_height, tk_fps, tk_br_video, tk_br_audio, tk_audio_normal, tk_smooth
 
     def checkStr(strtk):
         if strtk.get():
@@ -213,11 +213,13 @@ def getAllValues():
         "filename": fname,
         "text": checkStr(tk_text),
         "font": checkStr(tk_font),
+
         "bins": checkInt(tk_bins),
         "lower": checkInt(tk_fq_low),
         "upper": checkInt(tk_fq_high),
         "color": color_dic[checkStr(list_color)],
         "scalar": checkFloat(tk_scalar),
+        "smooth": checkInt(tk_smooth),
 
         "width": checkInt(tk_width),
         "height": checkInt(tk_height),
@@ -227,6 +229,7 @@ def getAllValues():
         "normal": tk_audio_normal.get(),
         "br_kbps": checkInt(tk_br_audio),
     }
+    print(param_dict)
     return param_dict
 
 
@@ -255,7 +258,7 @@ def setBlender(param_dict):
                      filename=param_dict["filename"])
     fb.setText(text=param_dict["text"], font=param_dict["font"])
     fb.setSpec(bins=param_dict["bins"], lower=param_dict["lower"], upper=param_dict["upper"],
-               color=param_dict["color"], scalar=param_dict["scalar"])
+               color=param_dict["color"], scalar=param_dict["scalar"], smooth=param_dict["smooth"])
     fb.setVideoInfo(width=param_dict["width"], height=param_dict["height"],
                     fps=param_dict["fps"], br_Mbps=param_dict["br_Mbps"])
     fb.setAudioInfo(normal=param_dict["normal"], br_kbps=param_dict["br_kbps"])
@@ -322,14 +325,14 @@ def presetVideo(*args):
 
 
 def presetAudio(*args):
-    global audio_dic, tk_br_audio, tk_fq_low, tk_fq_high, tk_audio_normal, tk_scalar
-    bra, low, up, normal, scale = audio_dic[list_preseta.get()]
+    global audio_dic, tk_br_audio, tk_fq_low, tk_fq_high, tk_audio_normal, tk_scalar,tk_smooth
+    bra, low, up, normal, scale,smooth = audio_dic[list_preseta.get()]
     tk_br_audio.set(bra)
     tk_fq_low.set(low)
     tk_fq_high.set(up)
     tk_audio_normal.set(normal)
     tk_scalar.set(scale)
-
+    tk_smooth.set(smooth)
 
 def saveConfig():
     vdic = getAllValues()
@@ -348,31 +351,40 @@ def loadConfig():
 
     global tk_image_path, tk_sound_path, tk_logo_path, tk_output_path, tk_filename, \
         tk_text, tk_font, tk_bins, tk_fq_low, tk_fq_high, color_dic, list_color, tk_scalar, \
-        tk_width, tk_height, tk_fps, tk_br_video, tk_br_audio, tk_audio_normal
+        tk_width, tk_height, tk_fps, tk_br_video, tk_br_audio, tk_audio_normal, tk_smooth
 
     def fileCheck(dicv, tk_value):
-        path = vdic[dicv]
-        if path is not None and os.path.exists(path):
-            tk_value.set(path)
-        else:
-            tk_value.set("")
+        try:
+            path = vdic[dicv]
+            if path is not None and os.path.exists(path):
+                tk_value.set(path)
+            else:
+                tk_value.set("")
+        except:
+            pass
 
     def strCheck(dicv, tk_value, trunc=False):
-        strv = vdic[dicv]
-        if strv is not None:
-            if not trunc:
-                tk_value.set(strv)
+        try:
+            strv = vdic[dicv]
+            if strv is not None:
+                if not trunc:
+                    tk_value.set(strv)
+                else:
+                    tk_value.set("".join(strv.split(".")[:-1]))
             else:
-                tk_value.set("".join(strv.split(".")[:-1]))
-        else:
-            tk_value.set("")
+                tk_value.set("")
+        except:
+            pass
 
     def numCheck(dicv, tk_value):
-        num = vdic[dicv]
-        if num is not None:
-            tk_value.set(num)
-        else:
-            tk_value.set(0)
+        try:
+            num = vdic[dicv]
+            if num is not None:
+                tk_value.set(num)
+            else:
+                tk_value.set(0)
+        except:
+            pass
 
     fileCheck("image_path", tk_image_path)
     fileCheck("sound_path", tk_sound_path)
@@ -391,6 +403,7 @@ def loadConfig():
     numCheck("br_Mbps", tk_br_video)
     numCheck("br_kbps", tk_br_audio)
     numCheck("normal", tk_audio_normal)
+    numCheck("smooth", tk_smooth)
 
     if vdic["color"] is not None:
         color_prev = None
@@ -458,6 +471,7 @@ if __name__ == '__main__':
         tk_fq_high = tk.IntVar()
         tk_scalar = tk.DoubleVar()
         tk_color = tk.StringVar()
+        tk_smooth = tk.IntVar()
 
         tk_width = tk.IntVar()
         tk_height = tk.IntVar()
@@ -476,7 +490,10 @@ if __name__ == '__main__':
         fb = FanBlender()
 
         root.title(lang["Fanseline Audio Visualizer"])
-        canvas = tk.Canvas(root, width=960, height=720)
+        if lang_code == "cn_s":
+            canvas = tk.Canvas(root, width=960, height=720)
+        else:
+            canvas = tk.Canvas(root, width=1200, height=720)
         canvas.pack()
         frame1 = tk.Frame(master=root)
         frame1.place(relx=0, rely=0, relwidth=1, relheight=1, anchor='nw')
@@ -541,15 +558,19 @@ if __name__ == '__main__':
         label_size.place(relwidth=0.1, relheight=relh, relx=0.05, rely=rely, anchor='nw')
         entry_width = tk.Entry(master=frame1, textvariable=tk_width)
         entry_width.place(relwidth=0.05, relheight=relh, relx=0.15, rely=rely, anchor='nw')
+
         label_mul = tk.Label(master=frame1, textvariable=tk.StringVar(value="x"))
         label_mul.place(relwidth=0.03, relheight=relh, relx=0.2, rely=rely, anchor='nw')
+
         entry_height = tk.Entry(master=frame1, textvariable=tk_height)
         entry_height.place(relwidth=0.05, relheight=relh, relx=0.23, rely=rely, anchor='nw')
 
         label_fps = tk.Label(master=frame1, textvariable=tk.StringVar(value=lang["Video FPS:"]))
         label_fps.place(relwidth=0.1, relheight=relh, relx=0.3, rely=rely, anchor='nw')
-        entry_fps = tk.Entry(master=frame1, textvariable=tk_fps)
-        entry_fps.place(relwidth=0.05, relheight=relh, relx=0.4, rely=rely, anchor='nw')
+        entry_fps = ttk.Combobox(master=frame1, textvariable=tk_fps)
+        entry_fps["values"] = (60.0, 50.0, 30.0, 25.0, 20.0, 15.0)
+        entry_fps.current(2)
+        entry_fps.place(relwidth=0.1, relheight=relh, relx=0.4, rely=rely, anchor='nw')
 
         label_brv = tk.Label(master=frame1, textvariable=tk.StringVar(value=lang["Video BR (Mbps):"]))
         label_brv.place(relwidth=0.15, relheight=relh, relx=0.50, rely=rely, anchor='nw')
@@ -573,12 +594,38 @@ if __name__ == '__main__':
 
         label_bins = tk.Label(master=frame1, textvariable=tk.StringVar(value=lang["Spectrum Num:"]))
         label_bins.place(relwidth=0.1, relheight=relh, relx=0.35, rely=rely, anchor='nw')
-        entry_bins = tk.Entry(master=frame1, textvariable=tk_bins)
+        entry_bins = ttk.Combobox(master=frame1, textvariable=tk_bins)
+        entry_bins["values"] = (12, 24, 36, 48, 60, 80, 100, 120)
+        entry_bins.current(5)
         entry_bins.place(relwidth=0.05, relheight=relh, relx=0.45, rely=rely, anchor='nw')
+
         label_scalar = tk.Label(master=frame1, textvariable=tk.StringVar(value=lang["Spectrum Scalar:"]))
         label_scalar.place(relwidth=0.1, relheight=relh, relx=0.53, rely=rely, anchor='nw')
-        entry_scalar = tk.Entry(master=frame1, textvariable=tk_scalar)
+        entry_scalar = ttk.Combobox(master=frame1, textvariable=tk_scalar)
+        entry_scalar["values"] = (0.05, 0.1, 0.2, 0.5, 0.7, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0)
+        entry_scalar.current(5)
         entry_scalar.place(relwidth=0.05, relheight=relh, relx=0.63, rely=rely, anchor='nw')
+
+        label_smooth = tk.Label(master=frame1, textvariable=tk.StringVar(value=lang["Spectrum Stabilize:"]))
+        label_smooth.place(relwidth=0.1, relheight=relh, relx=0.7, rely=rely, anchor='nw')
+        list_smooth = ttk.Combobox(master=frame1, textvariable=tk_smooth)
+        list_smooth["values"] = (0, 1, 2, 3, 5, 6, 7, 8, 9, 10)
+        list_smooth.current(0)
+        list_smooth.place(relwidth=0.08, relheight=relh, relx=0.8, rely=rely, anchor='nw')
+
+        rely += devy
+        label_bra = tk.Label(master=frame1, textvariable=tk.StringVar(value=lang["Audio BR:"]))
+        label_bra.place(relwidth=0.1, relheight=relh, relx=0.05, rely=rely, anchor='nw')
+        list_bra = ttk.Combobox(master=frame1, textvariable=tk_br_audio)
+        list_bra["values"] = (320, 256, 192, 128, 96, 64, 48)
+        list_bra.current(2)
+        list_bra.place(relwidth=0.08, relheight=relh, relx=0.15, rely=rely, anchor='nw')
+        label_kbps = tk.Label(master=frame1, textvariable=tk.StringVar(value="Kbps"))
+        label_kbps.place(relwidth=0.05, relheight=relh, relx=0.23, rely=rely, anchor='nw')
+
+        check_normal = tk.Checkbutton(master=frame1, text=lang["Normalize Volume"],
+                                      variable=tk_audio_normal, onvalue=True, offvalue=False)
+        check_normal.place(relwidth=0.15, relheight=relh, relx=0.3, rely=rely, anchor='nw')
 
         label_color = tk.Label(master=frame1, textvariable=tk.StringVar(value=lang["Spectrum Color:"]))
         label_color.place(relwidth=0.1, relheight=relh, relx=0.7, rely=rely, anchor='nw')
@@ -608,30 +655,16 @@ if __name__ == '__main__':
         list_color.place(relwidth=0.15, relheight=relh, relx=0.8, rely=rely, anchor='nw')
 
         rely += devy
-        label_bra = tk.Label(master=frame1, textvariable=tk.StringVar(value=lang["Audio BR:"]))
-        label_bra.place(relwidth=0.1, relheight=relh, relx=0.05, rely=rely, anchor='nw')
-        list_bra = ttk.Combobox(master=frame1, textvariable=tk_br_audio)
-        list_bra["values"] = (320, 256, 192, 128, 96, 64, 48)
-        list_bra.current(2)
-        list_bra.place(relwidth=0.08, relheight=relh, relx=0.15, rely=rely, anchor='nw')
-        label_kbps = tk.Label(master=frame1, textvariable=tk.StringVar(value="Kbps"))
-        label_kbps.place(relwidth=0.05, relheight=relh, relx=0.23, rely=rely, anchor='nw')
-
-        check_normal = tk.Checkbutton(master=frame1, text=lang["Normalize Volume"],
-                                      variable=tk_audio_normal, onvalue=True, offvalue=False)
-        check_normal.place(relwidth=0.15, relheight=relh, relx=0.3, rely=rely, anchor='nw')
-
-        rely += devy
         label_preseta = tk.Label(master=frame1, textvariable=tk.StringVar(value=lang["Audio Preset:"]))
         label_preseta.place(relwidth=0.1, relheight=relh, relx=0.05, rely=rely, anchor='nw')
         list_preseta = ttk.Combobox(master=frame1, textvariable=tk_preseta, state="readonly")
         audio_dic = {
-            lang["Music-HQ"] + " (320 kbps)": [320, 20, 2500, False, 1.0],
-            lang["Music-MQ"] + " (128 kbps)": [128, 20, 2500, False, 1.0],
-            lang["Music-LQ"] + " (48 kbps)": [48, 20, 2500, False, 1.0],
-            lang["Voice-HQ"] + " (320 kbps)": [320, 80, 2000, True, 0.5],
-            lang["Voice-MQ"] + " (128 kbps)": [128, 80, 2000, True, 0.5],
-            lang["Voice-LQ"] + " (48 kbps)": [48, 80, 2000, True, 0.5],
+            lang["Music-HQ"] + " (320 kbps)": [320, 20, 2500, False, 1.0,2],
+            lang["Music-MQ"] + " (128 kbps)": [128, 20, 2500, False, 1.0,2],
+            lang["Music-LQ"] + " (48 kbps)": [48, 20, 2500, False, 1.0,2],
+            lang["Voice-HQ"] + " (320 kbps)": [320, 80, 2000, True, 1.0,3],
+            lang["Voice-MQ"] + " (128 kbps)": [128, 80, 2000, True, 1.0,3],
+            lang["Voice-LQ"] + " (48 kbps)": [48, 80, 2000, True, 1.0,3],
         }
         list_preseta["values"] = dict2tuple(audio_dic)
         list_preseta.current(0)
@@ -643,18 +676,18 @@ if __name__ == '__main__':
         label_presetv.place(relwidth=0.1, relheight=relh, relx=0.4, rely=rely, anchor='nw')
         list_presetv = ttk.Combobox(master=frame1, textvariable=tk_presetv, state="readonly")
         video_dic = {
-            lang["Square"] + "720p(720x720:30)": [720, 720, 30, getDefaultBR(720, 720, 30, 4)],
-            lang["Square"] + "1080p(1080x1080:30)": [1080, 1080, 30, getDefaultBR(1080, 1080, 30, 5)],
-            lang["Square"] + "1024p(1024x1024:30)": [1024, 1024, 30, getDefaultBR(1024, 1024, 30, 5)],
-            lang["Square"] + "512p(512x512:30)": [512, 512, 30, getDefaultBR(512, 512, 30, 4)],
-            lang["Square"] + "480p(480x480:30)": [480, 480, 30, getDefaultBR(480, 480, 30, 4)],
+            lang["Square"] + " (720x720:30)": [720, 720, 30, getDefaultBR(720, 720, 30, 4)],
+            lang["Square"] + " (1080x1080:30)": [1080, 1080, 30, getDefaultBR(1080, 1080, 30, 5)],
+            lang["Square"] + " (1024x1024:30)": [1024, 1024, 30, getDefaultBR(1024, 1024, 30, 5)],
+            lang["Square"] + " (512x512:30)": [512, 512, 30, getDefaultBR(512, 512, 30, 4)],
+            lang["Square"] + " (480x480:30)": [480, 480, 30, getDefaultBR(480, 480, 30, 4)],
             "1080p (1920x1080:30)": [1920, 1080, 30, getDefaultBR(1920, 1080, 30, 5)],
             "720p (1280x720:30)": [1280, 720, 30, getDefaultBR(1280, 720, 30, 4)],
             "480p (854x480:30)": [854, 480, 30, getDefaultBR(854, 480, 30, 4)],
-            lang["Portrait"] + "1080p (1080x1920:30)": [1080, 1920, 30, getDefaultBR(1920, 1080, 30, 5)],
-            lang["Portrait"] + "720p (720x1280:30)": [720, 1280, 30, getDefaultBR(1280, 720, 30, 4)],
-            lang["Portrait"] + "480p (480x854:30)": [480, 854, 30, getDefaultBR(854, 480, 30, 4)],
-            "2k" + lang["(Slow)"] + "(2560x1440:30)": [2560, 1440, 30, getDefaultBR(2560, 1440, 30, 5)],
+            lang["Portrait"] + " (1080x1920:30)": [1080, 1920, 30, getDefaultBR(1920, 1080, 30, 5)],
+            lang["Portrait"] + " (720x1280:30)": [720, 1280, 30, getDefaultBR(1280, 720, 30, 4)],
+            lang["Portrait"] + " (480x854:30)": [480, 854, 30, getDefaultBR(854, 480, 30, 4)],
+            "2k " + lang["(Slow)"] + " (2560x1440:30)": [2560, 1440, 30, getDefaultBR(2560, 1440, 30, 5)],
         }
         list_presetv["values"] = dict2tuple(video_dic)
         list_presetv.current(0)

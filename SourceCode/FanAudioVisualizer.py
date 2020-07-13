@@ -1,6 +1,7 @@
 from FanWheels_PIL import *
 import numpy as np
 from pydub import AudioSegment
+from operator import add
 
 
 class AudioAnalyzer:
@@ -55,16 +56,41 @@ class AudioAnalyzer:
     def getTotalFrames(self):
         return int(self.fps * self.getLength() / self.getSampleRate()) + 1
 
-    def getHistAtFrame(self, index, fq_low=20, fq_up=6000, bins=80):
-        if index < 0:
-            index = -5
-        if index > self.totalFrames:
-            index = -5
-        middle = index * self.getSampleRate() / self.fps
-        offset = self.sample_rate / fq_low
-        left = int(round(middle) - 0.5 * offset)
-        right = int(round(middle + 2.5 * offset))
-        return self.fftAnalyzer(left, right, fq_low, fq_up, bins)
+    def getHistAtFrame(self, index, fq_low=20, fq_up=6000, bins=80,smooth=0):
+        def getRange(parent,idx,low):
+            if idx < 0:
+                idx = -5
+            if idx > parent.totalFrames:
+                idx = -5
+            middle = idx * parent.getSampleRate() / parent.fps
+            offset = parent.sample_rate / low
+            lt = int(round(middle) - 0.5 * offset)
+            rt = int(round(middle + 2.5 * offset))
+            return lt,rt
+
+        if smooth is None:
+            smooth = 0
+
+        smooth = int(round(smooth * self.fps / 30))
+        if smooth > 1:
+            fcount = 0
+            freq_acc = np.zeros(bins)
+            for i in range(smooth):
+                fcount = fcount+2
+                left, right = getRange(self, index-i, fq_low)
+                freq_acc += self.fftAnalyzer(left, right, fq_low, fq_up, bins)
+                left, right = getRange(self, index + i, fq_low)
+                freq_acc += self.fftAnalyzer(left, right, fq_low, fq_up, bins)
+            return freq_acc/fcount
+
+        # list(map(add, list1, list2))
+        # myList = [10, 20, 30, 40, 50, 60, 70, 80, 90]
+        # myInt = 10
+        # newList = [x / myInt for x in myList]
+
+        else:
+            left, right = getRange(self,index,fq_low)
+            return self.fftAnalyzer(left, right, fq_low, fq_up, bins)
 
 
 def circle(draw, center, radius, fill):

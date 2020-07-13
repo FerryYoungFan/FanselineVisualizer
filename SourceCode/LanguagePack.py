@@ -36,6 +36,7 @@ lang_cn_s = {
     "Hz": "赫兹",
     "Spectrum Num:": "频谱条的数量：",
     "Spectrum Scalar:": "频谱条灵敏倍率：",
+    "Spectrum Stabilize:": "频谱条防抖：",
     "Spectrum Color:": "频谱条颜色：",
 
     "Rainbow 4x": "彩虹 4x",

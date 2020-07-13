@@ -25,7 +25,8 @@ pydub		    V0.24.1*
 
 """
 
-__version__ = "1.0.2"
+__version__ = "1.0.3"
+
 
 class blendingThread(threading.Thread):
     def __init__(self, threadID, name, counter, parent):
@@ -40,7 +41,8 @@ class blendingThread(threading.Thread):
             self.parent.frame_buffer.append(
                 self.parent.visualizer.getFrame(
                     self.parent.analyzer.getHistAtFrame(self.parent.frame_pt, self.parent.fq_low, self.parent.fq_up,
-                                                        self.parent.bins), self.parent._amplify,
+                                                        self.parent.bins,self.parent.smooth),
+                    self.parent._amplify,
                     self.parent.spectrum_color))
             self.parent.frame_pt = self.parent.frame_pt + 1
 
@@ -60,7 +62,7 @@ class encodingThread(threading.Thread):
                 self.parent.writer.append_data(np.asarray(self.parent.frame_buffer.pop(0)))
             else:
                 self.parent.log("Processing:{0}/{1}".format(self.parent.encoder_pt, self.parent.total_frames))
-                self.parent.progress(self.parent.encoder_pt,self.parent.total_frames)
+                self.parent.progress(self.parent.encoder_pt, self.parent.total_frames)
                 time.sleep(3.0)
         self.parent.log("Processing:{0}/{1}".format(self.parent.encoder_pt, self.parent.total_frames))
         self.parent.progress(self.parent.encoder_pt, self.parent.total_frames)
@@ -107,6 +109,7 @@ class FanBlender:
 
         self.spectrum_color = "color4x"
         self.bins = 80
+        self.smooth = 0
         self.fq_low = 20
         self.fq_up = 1500
         self.scalar = 1.0
@@ -135,23 +138,22 @@ class FanBlender:
         self.encoder_pt = 0
 
         self.isRunning = False
-        self._console=None
+        self._console = None
 
-    def ensure_dir(self,file_path):
+    def ensure_dir(self, file_path):
         directory = os.path.dirname(file_path)
         if not os.path.exists(directory):
             os.makedirs(directory)
-
 
     def fileError(self, filepath):
         if filepath is not None:
             self.log("Error: File {0} does not exist.".format(filepath))
 
-    def setConsole(self,console=None):
+    def setConsole(self, console=None):
         if console:
             self._console = console
 
-    def log(self,content=""):
+    def log(self, content=""):
         print(content)
         if self._console:
             try:
@@ -159,14 +161,14 @@ class FanBlender:
             except:
                 pass
 
-    def progress(self,value,total):
+    def progress(self, value, total):
         if self._console:
             try:
-                self._console.progressbar(value,total)
+                self._console.progressbar(value, total)
             except:
                 return
 
-    def freezeConsole(self,flag=True):
+    def freezeConsole(self, flag=True):
         if self._console:
             try:
                 self._console.freeze(flag)
@@ -178,8 +180,10 @@ class FanBlender:
             if os.path.isfile(image_path):
                 self.image_path = image_path
             else:
-                self.logo_path = None
+                self.image_path = None
                 self.fileError(image_path)
+        else:
+            self.image_path = None
 
         if sound_path is not None:
             if os.path.isfile(sound_path):
@@ -193,6 +197,8 @@ class FanBlender:
             else:
                 self.logo_path = None
                 self.fileError(logo_path)
+        else:
+            self.logo_path = None
 
     def setOutputPath(self, output_path=None, filename=None):
         if filename is None:
@@ -208,11 +214,12 @@ class FanBlender:
                 font = "./Source/font.otf"
             elif os.path.exists("./Source/font.ttf"):
                 font = "./Source/font.ttf"
-            else: font = "Arial.ttf"
+            else:
+                font = "Arial.ttf"
         self.font = font
         self.font_alpha = font_alpha
 
-    def setSpec(self, bins=None, lower=None, upper=None, color=None, scalar=None):
+    def setSpec(self, bins=None, lower=None, upper=None, color=None, scalar=None,smooth=None):
         if bins is not None:
             if bins < 2:
                 bins = 2
@@ -246,6 +253,13 @@ class FanBlender:
                 scalar = 10
             self.scalar = scalar
 
+        if smooth is not None:
+            if smooth < 0:
+                smooth = 0
+            elif smooth > 10:
+                smooth = 10
+            self.smooth = int(round(smooth))
+
         self._amplify = self.scalar * 7 / 80 * self.bins * np.power(1500 / (self.fq_up - self.fq_low), 0.5)
         self.visualizer = None
 
@@ -255,7 +269,7 @@ class FanBlender:
             "Lower Frequency": self.fq_low,
             "Upper Frequency": self.fq_up,
             "Color": self.spectrum_color,
-            "Scalar":self.scalar
+            "Scalar": self.scalar
         }
         return info_dic
 
@@ -298,7 +312,7 @@ class FanBlender:
         }
         return info_dic
 
-    def setAudioInfo(self,normal=None, br_kbps=None):
+    def setAudioInfo(self, normal=None, br_kbps=None):
         if normal is not None:
             self.audio_normal = normal
 
@@ -333,8 +347,8 @@ class FanBlender:
 
         self.log("Blending Background...")
         try:
-            fimage = Image.new('RGB', image.size, (64,64,64))
-            fimage.paste(image,(0,0),image)
+            fimage = Image.new('RGB', image.size, (64, 64, 64))
+            fimage.paste(image, (0, 0), image)
             if fimage:
                 image = fimage
         except:
@@ -349,7 +363,8 @@ class FanBlender:
         foreground = cropCircle(image, size=self._frame_size // 2)
         background = genBG(image, size=(self.frame_width, self.frame_height), blur=self._blur_bg, bright=0.3)
         background = pasteMiddle(foreground, background, True)
-        background = glowText(background, self.text_bottom, self._font_size, self.font, alpha=self.font_alpha, blur=self._blur,
+        background = glowText(background, self.text_bottom, self._font_size, self.font, alpha=self.font_alpha,
+                              blur=self._blur,
                               logo=logofile)
         self.visualizer = AudioVisualizer(background, self._frame_size / 4 * 1.1,
                                           self._frame_size / 2 - self._font_size * 2.5, self._line_thick,
@@ -419,7 +434,7 @@ class FanBlender:
             self.log("Output path: " + self.output_path)
             self.log("Combining Videos...")
             audio_br = str(self.audio_bit_rate) + "k"
-            combineVideo(self._temp_video_path, self.sound_path, self.output_path, audio_br,self.audio_normal)
+            combineVideo(self._temp_video_path, self.sound_path, self.output_path, audio_br, self.audio_normal)
             self.log("Combining Videos... Done!")
         else:
             self.log("Blending Aborted!")
@@ -442,16 +457,17 @@ class FanBlender:
 if __name__ == '__main__':
     # Example of using FanBlender
 
-    fb = FanBlender() #  the blender
+    fb = FanBlender()  # the blender
     fb.setFilePath(image_path=r"./Source/fallback.png",
                    sound_path=r"./Source/test.mp3",
-                   logo_path=r"./Source/logo.png") # Set File Path
+                   logo_path=r"./Source/logo.png")  # Set File Path
     fb.setOutputPath(output_path=r"./Output",
-                     filename="test.mp4") # Set Output Path
-    fb.setText(text="Your Text Here", font="./Source/font.otf") # Set text at the bottom
+                     filename="test.mp4")  # Set Output Path
+    fb.setText(text="Your Text Here", font="./Source/font.otf")  # Set text at the bottom
     fb.setSpec(bins=80, lower=20, upper=1500,
-               color=fb.color_dic["Gradient: Green - Blue"],scalar=1.0) # Set Spectrum Style
-    fb.setVideoInfo(width=520, height=520, fps=30, br_Mbps=5) # Video info
-    fb.previewBackground() # Preview before blending
-    fb.setAudioInfo(normal=False, br_kbps=192) # Audio info
-    fb.runBlending() # Blend the Video
+               color=fb.color_dic["Gradient: Green - Blue"],
+               scalar=1.0, smooth=5)  # Set Spectrum Style
+    fb.setVideoInfo(width=520, height=520, fps=30, br_Mbps=5)  # Video info
+    fb.previewBackground()  # Preview before blending
+    fb.setAudioInfo(normal=False, br_kbps=192)  # Audio info
+    fb.runBlending()  # Blend the Video
