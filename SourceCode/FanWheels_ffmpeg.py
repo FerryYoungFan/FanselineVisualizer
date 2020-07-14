@@ -30,5 +30,25 @@ def combineVideo(video, audio, file_out, audio_quality="320k", normal=False):
     ffcmd(cmd)
 
 
+def cvtFileName(path, new_format=None):
+    if new_format is None:
+        return path
+    last_dot = 0
+    for i in range(len(path)):
+        if path[i] == ".":
+            last_dot = i
+    ftype = path[last_dot + 1:]
+    if new_format[0] == ".":
+        pass
+    else:
+        new_format = "." + new_format
+    if "/" in ftype or "\\" in ftype:
+        outpath = path + new_format
+    else:
+        outpath = path[:last_dot] + new_format
+    return outpath
+
+
 if __name__ == '__main__':
-    ffcmd("-version")
+    # ffcmd("-version")
+    print(cvtFileName("C:/text/xxx.mp4", "mov"))

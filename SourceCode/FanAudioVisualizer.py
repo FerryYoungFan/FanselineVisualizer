@@ -44,7 +44,7 @@ class AudioAnalyzer:
             if win_up >= xf.shape[0]:
                 win_up = xf.shape[0] - 1
             freq_array[i] = np.sum(yf_fq[win_low:win_up])
-        return freq_array
+        return loopAverage(freq_array)
 
     def getSampleRate(self):
         return self.sample_rate
@@ -55,8 +55,8 @@ class AudioAnalyzer:
     def getTotalFrames(self):
         return int(self.fps * self.getLength() / self.getSampleRate()) + 1
 
-    def getHistAtFrame(self, index, fq_low=20, fq_up=6000, bins=80,smooth=0):
-        def getRange(parent,idx,low):
+    def getHistAtFrame(self, index, fq_low=20, fq_up=6000, bins=80, smooth=0):
+        def getRange(parent, idx, low):
             if idx < 0:
                 idx = -5
             if idx > parent.totalFrames:
@@ -65,7 +65,7 @@ class AudioAnalyzer:
             offset = parent.sample_rate / low
             lt = int(round(middle) - 0.5 * offset)
             rt = int(round(middle + 2.5 * offset))
-            return lt,rt
+            return lt, rt
 
         if smooth is None:
             smooth = 0
@@ -75,15 +75,15 @@ class AudioAnalyzer:
             fcount = 0
             freq_acc = np.zeros(bins)
             for i in range(smooth):
-                fcount = fcount+2
-                left, right = getRange(self, index-i, fq_low)
+                fcount = fcount + 2
+                left, right = getRange(self, index - i, fq_low)
                 freq_acc += self.fftAnalyzer(left, right, fq_low, fq_up, bins)
                 left, right = getRange(self, index + i, fq_low)
                 freq_acc += self.fftAnalyzer(left, right, fq_low, fq_up, bins)
-            return freq_acc/fcount
+            return freq_acc / fcount
 
         else:
-            left, right = getRange(self,index,fq_low)
+            left, right = getRange(self, index, fq_low)
             return self.fftAnalyzer(left, right, fq_low, fq_up, bins)
 
 
@@ -99,9 +99,8 @@ def getCycleHue(start, end, bins, index, cycle=1):
     return (div * ratio + start) / 360
 
 
-def getColor(bins, index, color_mode="color4x"):
-    sat = 0.8
-    brt = 1.0
+def getColor(bins, index, color_mode="color4x", bright=1.0, sat=0.8):
+    brt = 0.4 + bright * 0.6
     if color_mode == "color4x":
         return hsv_to_rgb(4 * index / bins, sat, brt) + (255,)
     if color_mode == "color2x":
@@ -109,6 +108,10 @@ def getColor(bins, index, color_mode="color4x"):
     if color_mode == "color1x":
         return hsv_to_rgb(1 * index / bins, sat, brt) + (255,)
     if color_mode == "white":
+        return hsv_to_rgb(0, 0, 1.0) + (255,)
+    if color_mode == "black":
+        return hsv_to_rgb(0, 0, 0) + (255,)
+    if color_mode == "gray":
         return hsv_to_rgb(0, 0, brt) + (255,)
     if color_mode == "red":
         return hsv_to_rgb(0, sat, brt) + (255,)
@@ -140,7 +143,7 @@ def getColor(bins, index, color_mode="color4x"):
 
 
 class AudioVisualizer:
-    def __init__(self, img, rad_min, rad_max, line_thick, blur=5):
+    def __init__(self, img, rad_min, rad_max, line_thick, blur=5, style=0):
         self.background = img.copy()
         self.width, self.height = self.background.size
         self.mdpx = self.width / 2
@@ -150,26 +153,42 @@ class AudioVisualizer:
         self.rad_div = rad_max - rad_min
         self.line_thick = line_thick
         self.blur = blur
+        self.style = style
 
-    def getFrame(self, hist, amplify=5, color_mode="color4x"):
+    def getFrame(self, hist, amplify=5, color_mode="color4x", bright=1.0, use_glow=True):
         bins = hist.shape[0]
         hist = np.clip(hist * amplify, 0, 1)
 
         ratio = 2  # antialiasing ratio
         line_thick = self.line_thick * ratio
-        canvas = Image.new('RGBA', (self.width * ratio, self.height * ratio), (22, 22, 22, 0))
+
+        brt = int(round(bright * 255))
+        if brt > 255:
+            brt = 255
+        elif brt < 0:
+            brt = 0
+        canvas = Image.new('RGBA', (self.width * ratio, self.height * ratio), (brt, brt, brt, 0))
         draw = ImageDraw.Draw(canvas)
 
         for i in range(bins):
-            color = getColor(bins, i, color_mode)
-            line_points = [self.getAxis(bins, i, self.rad_min, ratio),
-                           self.getAxis(bins, i, self.rad_min + hist[i] * self.rad_div, ratio)]
-            draw.line(line_points, width=line_thick, fill=color, joint='curve')
-            circle(draw, line_points[0], line_thick / 2, color)
-            circle(draw, line_points[1], line_thick / 2, color)
+            color = getColor(bins, i, color_mode, bright)
+            if self.style == 1:
+                p_gap = line_thick / 2
+                p_size = line_thick / 2
+                p_n = int(((hist[i] * self.rad_div) + p_size) / (p_gap + p_size)) + 1
+                for ip in range(p_n):
+                    p_rad = (p_gap + p_size) * ip
+                    circle(draw, self.getAxis(bins, i, self.rad_min + p_rad, ratio), line_thick / 2, color)
+            else:
+                line_points = [self.getAxis(bins, i, self.rad_min, ratio),
+                               self.getAxis(bins, i, self.rad_min + hist[i] * self.rad_div, ratio)]
+                draw.line(line_points, width=line_thick, fill=color, joint='curve')
+                circle(draw, line_points[0], line_thick / 2, color)
+                circle(draw, line_points[1], line_thick / 2, color)
+        if use_glow:
+            canvas_blur = canvas.filter(ImageFilter.GaussianBlur(radius=self.blur / 2 * ratio))
+            canvas = ImageChops.add(canvas, canvas_blur)
 
-        canvas_blur = canvas.filter(ImageFilter.GaussianBlur(radius=self.blur * ratio))
-        canvas = ImageChops.add(canvas, canvas_blur)
         canvas = canvas.resize((self.width, self.height), Image.ANTIALIAS)
 
         output = self.background.copy()
@@ -182,3 +201,28 @@ class AudioVisualizer:
         ox = (self.mdpx + radius * np.cos(angle)) * ratio
         oy = (self.mdpy + radius * np.sin(angle)) * ratio
         return ox, oy
+
+
+def loopAverage(arr_in, ratio=0.01):
+    if ratio < 0:
+        ratio = 0
+    elif ratio >1:
+        ratio = 1
+    avg_size = round(len(arr_in)*ratio)
+    k_size = int(2*avg_size+1)
+    if k_size <= 0:
+        return arr_in
+
+    arr = np.concatenate((arr_in[-avg_size:], arr_in,arr_in[:avg_size]), axis=None)
+    arr_out = arr_in.copy()
+
+    norm_x = np.arange(-avg_size,avg_size+1)
+    norm_sig = avg_size*0.5
+    norm_y = 1/(norm_sig*np.sqrt(2*np.pi))*np.exp(-norm_x*norm_x/(2*norm_sig*norm_sig))
+    for i in range(len(arr_out)):
+        arr_out[i] = np.sum(arr[i:i+k_size]*norm_y)
+    return arr_out
+
+if __name__ == '__main__':
+
+    loopAverage([1,2,3,4,5,6,7,8,9,10],0.1)

@@ -67,27 +67,49 @@ def genBG(img, size, blur=41, bright=0.35):
     return output
 
 
-def pasteMiddle(fg, bg, glow=False, blur=2):
+def pasteMiddle(fg, bg, glow=False, blur=2, bright=1):
     fg_w, fg_h = fg.size
     bg_w, bg_h = bg.size
     offset = ((bg_w - fg_w) // 2, (bg_h - fg_h) // 2)
 
     if glow:
-        canvas = Image.new('RGBA', (bg_w, bg_h), (255, 255, 255, 0))
+        brt = int(round(bright * 255))
+        if brt > 255:
+            brt = 255
+        elif brt < 0:
+            brt = 0
+        canvas = Image.new('RGBA', (bg_w, bg_h), (brt, brt, brt, 0))
         canvas.paste(fg, offset, fg)
-        canvas = canvas.split()[-1]
-        # canvas = Image.merge('RGBA',(mask,mask,mask,mask))
+        mask = canvas.split()[-1]
+        mask = mask.point(lambda i: i * bright)
         ratio = 2
-        canvas = resizeRatio(canvas, ratio)
-        canvas = canvas.filter(ImageFilter.GaussianBlur(radius=blur * ratio))
-        canvas = canvas.resize((bg_w, bg_h))
-        canvas = Image.merge('RGB', (canvas, canvas, canvas))
+        mask = resizeRatio(mask, ratio)
+        mask = mask.filter(ImageFilter.GaussianBlur(radius=blur * ratio))
+        mask = mask.resize((bg_w, bg_h))
+        if bg.mode == "L":
+            canvas = mask
+        elif bg.mode == "RGB":
+            canvas = Image.merge('RGB', (mask, mask, mask))
+        elif bg.mode == "RGBA":
+            canvas = Image.merge('RGBA', (mask, mask, mask, mask))
         bg = ImageChops.add(bg, canvas)
     bg.paste(fg, offset, fg)
     return bg
 
 
-def glowText(img, text=None, font_size=35, font_set=None, alpha=0.5, blur=2, logo=None):
+def glowText(img, text=None, font_size=35, font_set=None, bright=1.0, blur=2, logo=None, use_glow=True):
+    brt = int(round(bright * 255))
+    if brt > 255:
+        brt = 255
+    elif brt < 0:
+        brt = 0
+
+    tcolor = int(round(((bright - 0.5) * 3 + 0.5) * 255))
+    if tcolor > 255:
+        tcolor = 255
+    elif tcolor < 0:
+        tcolor = 0
+
     width, height = img.size
     ratio = 2
     width = width * ratio
@@ -100,7 +122,7 @@ def glowText(img, text=None, font_size=35, font_set=None, alpha=0.5, blur=2, log
     else:
         _font = ImageFont.truetype(font_set, font_size)
 
-    canvas = Image.new('RGBA', (width, height), (0, 0, 0, 0))
+    canvas = Image.new('RGBA', (width, height), (brt, brt, brt, 0))
     draw = ImageDraw.Draw(canvas)
     if text:
         w, h = draw.textsize(text, font=_font)
@@ -120,23 +142,22 @@ def glowText(img, text=None, font_size=35, font_set=None, alpha=0.5, blur=2, log
             canvas.paste(logo, (round((width - w) / 2), round(height - 2 * font_size)), logo)
         except:
             canvas.paste(logo, (round((width - w) / 2), round(height - 2 * font_size)))
-
     if text:
-        draw.text(((width - w) / 2 + xoffset, height - 2 * font_size), text, fill=(255, 255, 255, 255), font=_font)
-    mask_blur = canvas.split()[-1]
-    mask_blur = mask_blur.filter(ImageFilter.GaussianBlur(radius=blur * 2))
-    glow_text = Image.merge("RGBA", (mask_blur, mask_blur, mask_blur, mask_blur))
-    glow_text = glow_text.resize(img.size, Image.ANTIALIAS)
-    canvas = canvas.resize(img.size, Image.ANTIALIAS)
-
-    # canvas_blur = canvas.filter(ImageFilter.GaussianBlur(radius=blur))
-    # canvas = ImageChops.add(canvas, canvas_blur)
-    # canvas = canvas.resize(img.size, Image.ANTIALIAS)
-    # paste_mask = canvas.split()[-1].point(lambda i: i * alpha)
-
-    img.paste(glow_text, (0, 0), mask=glow_text)
-    img.paste(glow_text, (0, 0), mask=glow_text)
-    img.paste(canvas, (0, 0), mask=canvas)
+        draw.text(((width - w) / 2 + xoffset, height - 2 * font_size), text, fill=(tcolor, tcolor, tcolor, 255),
+                  font=_font)
+    if use_glow:
+        mask_blur = canvas.split()[-1]
+        mask_blur = mask_blur.filter(ImageFilter.GaussianBlur(radius=blur * 2))
+        fg_blur = canvas.split()[0]
+        fg_blur = fg_blur.filter(ImageFilter.GaussianBlur(radius=blur * 2))
+        glow_text = Image.merge("RGBA", (fg_blur, fg_blur, fg_blur, mask_blur))
+        glow_text = glow_text.resize(img.size, Image.ANTIALIAS)
+        canvas = canvas.resize(img.size, Image.ANTIALIAS)
+        img.paste(glow_text, (0, 0), mask=glow_text)
+        img.paste(canvas, (0, 0), mask=canvas)
+    else:
+        canvas = canvas.resize(img.size, Image.ANTIALIAS)
+        img.paste(canvas, (0, 0), mask=canvas)
     return img
 
 
