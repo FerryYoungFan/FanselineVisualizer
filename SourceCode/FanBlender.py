@@ -8,7 +8,7 @@ import numpy as np
 
 import threading, time, os
 
-__version__ = "1.0.4"
+__version__ = "1.0.5"
 
 """
 Audio Visualizer
@@ -23,31 +23,40 @@ numpy		    V 1.19.0
 Pillow		    V 7.2.0
 imageio		    V 2.9.0
 imageio-ffmpeg	V 0.4.2
-pydub		    V0.24.1*
+pydub		    V 0.24.1*
 (* No need to install ffmpeg for pydub, since it shares ffmpeg with imageio-ffmpeg.)
 
 """
 
 
 class blendingThread(threading.Thread):
-    def __init__(self, threadID, name, counter, parent):
+    def __init__(self, threadID, name, counter, parent, total_thread, thread_num):
         threading.Thread.__init__(self)
         self.threadID = threadID
         self.name = name
         self.counter = counter
         self.parent = parent
+        self.total_thread = total_thread
+        self.thread_num = thread_num
+        self.frame_pt = thread_num
 
     def run(self):
-        while self.parent.frame_pt < self.parent.total_frames and self.parent.isRunning:
-            self.parent.frame_buffer.append(
-                self.parent.visualizer.getFrame(
-                    hist=self.parent.analyzer.getHistAtFrame(self.parent.frame_pt, self.parent.fq_low,
-                                                             self.parent.fq_up, self.parent.bins, self.parent.smooth),
-                    amplify=self.parent._amplify,
-                    color_mode=self.parent.spectrum_color,
-                    bright=self.parent._bright,
-                    use_glow=self.parent.use_glow))
-            self.parent.frame_pt = self.parent.frame_pt + 1
+        while self.frame_pt < self.parent.total_frames and self.parent.isRunning:
+            self.parent.frame_lock[self.frame_pt] = self.thread_num + 1
+            self.parent.frame_buffer[self.frame_pt] = self.parent.visualizer.getFrame(
+                hist=self.parent.analyzer.getHistAtFrame(self.frame_pt, self.parent.fq_low,
+                                                         self.parent.fq_up, self.parent.bins, self.parent.smooth),
+                amplify=self.parent._amplify,
+                color_mode=self.parent.spectrum_color,
+                bright=self.parent._bright,
+                use_glow=self.parent.use_glow,
+                rotate=self.parent.rotate,
+                fps=self.parent.fps,
+                frame_pt=self.frame_pt,
+                bg_mode=self.parent.bg_mode,
+                fg_img=self.parent.fg_img)
+            self.frame_pt = self.frame_pt + self.total_thread
+        print("Thread {0} -end".format(self.thread_num))
 
 
 class encodingThread(threading.Thread):
@@ -59,14 +68,22 @@ class encodingThread(threading.Thread):
         self.parent = parent
 
     def run(self):
+        realTimePrev = None
         while self.parent.encoder_pt < self.parent.total_frames and self.parent.isRunning:
-            if len(self.parent.frame_buffer) > 0:
+            if self.parent.frame_buffer[self.parent.encoder_pt] is not None:
+                self.parent.writer.append_data(np.asarray(self.parent.frame_buffer[self.parent.encoder_pt]))
+                realTimePrev = self.parent.frame_buffer[self.parent.encoder_pt]
+                self.parent.frame_buffer[self.parent.encoder_pt] = None
                 self.parent.encoder_pt = self.parent.encoder_pt + 1
-                self.parent.writer.append_data(np.asarray(self.parent.frame_buffer.pop(0)))
             else:
+                if realTimePrev:
+                    self.parent.previewRealTime(realTimePrev)
+                    realTimePrev = None
                 self.parent.log("Processing:{0}/{1}".format(self.parent.encoder_pt, self.parent.total_frames))
                 self.parent.progress(self.parent.encoder_pt, self.parent.total_frames)
                 time.sleep(3.0)
+        self.parent.previewRealTime(realTimePrev)
+        realTimePrev = None
         self.parent.log("Processing:{0}/{1}".format(self.parent.encoder_pt, self.parent.total_frames))
         self.parent.progress(self.parent.encoder_pt, self.parent.total_frames)
         if self.parent.encoder_pt >= self.parent.total_frames:
@@ -138,11 +155,13 @@ class FanBlender:
         self.use_glow = True
         self.style = 0
         self.linewidth = 1.0
+        self.rotate = 0
         self._line_thick = int(round(self.linewidth * 4 / 1080 * self._frame_size))
         self._amplify = self.scalar * 3 / 80 * self.bins * np.power(1500 / (self.fq_up - self.fq_low), 0.5)
 
         self.visualizer = None
         self.analyzer = None
+        self.fg_img = None
 
         self.writer = None
         self.total_frames = None
@@ -152,6 +171,8 @@ class FanBlender:
 
         self.isRunning = False
         self._console = None
+
+        self.frame_lock = None
 
         self.bg_mode = 0
 
@@ -313,7 +334,8 @@ class FanBlender:
         self._line_thick = int(round(self.linewidth * 4 / 1080 * self._frame_size))
         self.visualizer = None
 
-    def setVideoInfo(self, width=None, height=None, fps=None, br_Mbps=None, blur_bg=None, use_glow=None, bg_mode=None):
+    def setVideoInfo(self, width=None, height=None, fps=None, br_Mbps=None, blur_bg=None, use_glow=None, bg_mode=None,
+                     rotate=None):
         minwidth = 16
         if width is not None:
             if width < minwidth:
@@ -343,6 +365,9 @@ class FanBlender:
 
         if bg_mode is not None:
             self.bg_mode = bg_mode
+
+        if rotate is not None:
+            self.rotate = float(rotate)
 
         self._frame_size = min(self.frame_width, self.frame_height)
         self._font_size = int(round(30 / 1080 * self._frame_size * self._relsize))
@@ -402,6 +427,7 @@ class FanBlender:
             logofile = None
 
         foreground = cropCircle(image, size=self._frame_size // 2)
+        self.fg_img = foreground
 
         if bg is None:
             bg = image.copy()
@@ -419,7 +445,7 @@ class FanBlender:
             background = glowText(background, self.text_bottom, self._font_size, self.font, bright=self._bright,
                                   blur=self._blur, logo=logofile, use_glow=self.use_glow)
 
-        gap = self._font_size * 2.3
+        gap = self._font_size * 2
         if self.text_bottom is None or self.text_bottom == "":
             if self.logo_path is None or not os.path.exists(self.logo_path):
                 gap = 0
@@ -431,13 +457,22 @@ class FanBlender:
                                           blur=self._blur, style=self.style)
         self.log("Blending Background... Done!")
 
-    def previewBackground(self):
+    def previewBackground(self, localViewer=False):
         self.genBackground()
         xs = np.linspace(0, self.bins / 3 * np.pi, self.bins)
         ys = 0.5 + 0.6 * np.cos(xs)
         frame_sample = self.visualizer.getFrame(hist=ys, amplify=1, color_mode=self.spectrum_color, bright=self._bright,
                                                 use_glow=self.use_glow)
-        frame_sample.show()
+        if localViewer:
+            frame_sample.show()
+        return frame_sample
+
+    def previewRealTime(self, img):
+        if self._console:
+            try:
+                self._console.realTime(img)
+            except:
+                return
 
     def genAnalyzer(self):
         try:
@@ -481,15 +516,16 @@ class FanBlender:
             self.writer = imageio.get_writer(self._temp_video_path, fps=self.fps, macro_block_size=None,
                                              bitrate=int(self.bit_rate * 1000000))
         self.total_frames = self.analyzer.getTotalFrames()
-        self.frame_buffer = []
-        self.frame_pt = 0
+        self.frame_buffer = [None] * self.total_frames
         self.encoder_pt = 0
 
         thread_encode = encodingThread(1, "Thread-1", 1, self)
         thread_stack = []
         thread_num = 7
+        self.frame_lock = np.zeros(self.total_frames, dtype=np.uint8)
+
         for ith in range(thread_num):
-            thread_stack.append(blendingThread(ith + 2, "Thread-" + str(ith + 2), ith + 2, self))
+            thread_stack.append(blendingThread(ith + 2, "Thread-" + str(ith + 2), ith + 2, self, thread_num, ith))
         thread_encode.start()
         for ith in range(thread_num):
             thread_stack[ith].start()
@@ -521,7 +557,6 @@ class FanBlender:
         else:
             return cvtFileName(self.output_path, "mp4")
 
-
     def removeTemp(self):
         def removeFile(file_path):
             try:
@@ -552,7 +587,7 @@ if __name__ == '__main__':
                scalar=1.0, smooth=5,
                style=1, linewidth=2.0)
     """
-    Set Spectrum Style:
+    Set Spectrum:
     bins: Number of spectrums
     lower: Lower Frequency
     upper: Upper Frequency
@@ -560,18 +595,19 @@ if __name__ == '__main__':
     bright: Brightness of Spectrum
     scalar: Sensitivity (Scalar) of Analyzer (Default:1.0)
     smooth: Stabilize Spectrum (Range: 0 - 10)
-    style: 0: Solid Line Style, 1: Dot Line Style
+    style: 0-7 for Different Spectrum Styles
     linewidth: Relative Width of Spectrum Line (0.5-20)
     """
-    fb.setVideoInfo(width=720, height=1280, fps=30, br_Mbps=5,
-                    blur_bg=True, use_glow=True, bg_mode=0)
+    fb.setVideoInfo(width=480, height=480, fps=30.0, br_Mbps=1.0,
+                    blur_bg=True, use_glow=True, bg_mode=0, rotate=2.0)
     """
     Video info
     br_Mbps: Bit Rate of Video (Mbps)
     blur_bg: Blur the background
     use_glow: Add Glow Effect to Spectrum and Text
     bg_mode: 0: Normal Background, 2: Background Only, -1: Transparent Background, -2: Spectrum Only
+    rotate: Rotate Foreground (r/min, Positive for Clockwise)
     """
-    fb.previewBackground()  # Preview before blending
+    fb.previewBackground(localViewer=True)  # Preview before blending
     fb.setAudioInfo(normal=False, br_kbps=192)  # Audio info
     fb.runBlending()  # Blend the Video

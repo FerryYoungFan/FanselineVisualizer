@@ -15,6 +15,9 @@ lang_cn_s = {
     "Output Path Selected: ": "已选择输出路径： ",
     "Font Selected: ": "已选择字体： ",
     "Cannot Blend": "无法开始渲染",
+    "Save as...": "另存为……",
+    "Snap": "快照",
+    "Cannot Save Image!": "无法储存图片！",
 
     "Please select the correct audio file!": "请先正确选择音频文件！",
     "Please select the correct output path!": "请正确选择输出路径！",
@@ -87,6 +90,12 @@ lang_cn_s = {
     "Spectrum Style:": "频谱风格：",
     "Solid Line": "实线频谱",
     "Dot Line": "点阵频谱",
+    "Single Dot": "单点频谱",
+    "Double Dot": "双点频谱",
+    "Stem Plot1": "Stem图1",
+    "Stem Plot2": "Stem图2",
+    "Stem Plot3": "Stem图3",
+    "Stem Plot4": "Stem图4",
     "Line Width:": "频谱线宽：",
     "BG Mode:": "背景模式：",
     "Blurred BG Image": "模糊背景",
@@ -97,6 +106,8 @@ lang_cn_s = {
     "Spectrum Only": "仅频谱",
     "Glow Effect": "发光效果",
     "Project Website: ": "项目网站：",
+
+    "Spin FG(rpm):": "旋转主图(转/分)："
 
 }
 

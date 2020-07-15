@@ -15,7 +15,6 @@ class AudioAnalyzer:
 
         self.fps = fps
         self.totalFrames = self.getTotalFrames()
-        print("total frames", self.totalFrames)
 
     def fftAnalyzer(self, start_p, stop_p, fq_low=20, fq_up=6000, bins=80):
         freq_array = np.zeros(bins)
@@ -148,14 +147,22 @@ class AudioVisualizer:
         self.width, self.height = self.background.size
         self.mdpx = self.width / 2
         self.mdpy = self.height / 2
-        self.rad_min = rad_min
-        self.rad_max = rad_max
-        self.rad_div = rad_max - rad_min
         self.line_thick = line_thick
+        if style in [1, 2, 4, 6, 7]:
+            self.rad_min = rad_min + line_thick * 1.5
+            self.rad_max = rad_max - line_thick * 1.5
+        elif style in [3, 5]:
+            self.rad_min = rad_min + line_thick / 2
+            self.rad_max = rad_max - line_thick * 1.5
+        else:
+            self.rad_min = rad_min + line_thick / 2
+            self.rad_max = rad_max - line_thick / 2
+        self.rad_div = self.rad_max - self.rad_min
         self.blur = blur
         self.style = style
 
-    def getFrame(self, hist, amplify=5, color_mode="color4x", bright=1.0, use_glow=True):
+    def getFrame(self, hist, amplify=5, color_mode="color4x", bright=1.0, use_glow=True, rotate=0.0, fps=30.0,
+                 frame_pt=0, bg_mode=0, fg_img=None):
         bins = hist.shape[0]
         hist = np.clip(hist * amplify, 0, 1)
 
@@ -173,12 +180,51 @@ class AudioVisualizer:
         for i in range(bins):
             color = getColor(bins, i, color_mode, bright)
             if self.style == 1:
+                p_gap = line_thick * 1.5
+                p_size = line_thick * 1.5
+                p_n = int(((hist[i] * self.rad_div) + p_size) / (p_gap + p_size))
+                circle(draw, self.getAxis(bins, i, self.rad_min, ratio), line_thick * 1.5, color)
+                for ip in range(p_n):
+                    p_rad = (p_gap + p_size) * ip
+                    circle(draw, self.getAxis(bins, i, self.rad_min + p_rad, ratio), line_thick * 1.5, color)
+            elif self.style == 2:
+                circle(draw, self.getAxis(bins, i, self.rad_min + hist[i] * self.rad_div, ratio), line_thick * 1.5,
+                       color)
+            elif self.style == 3:
+                line_points = [self.getAxis(bins, i, self.rad_min, ratio),
+                               self.getAxis(bins, i, self.rad_min + hist[i] * self.rad_div, ratio)]
+                draw.line(line_points, width=line_thick, fill=color, joint='curve')
+                circle(draw, line_points[0], line_thick / 2, color)
+                circle(draw, line_points[1], line_thick * 1.5, color)
+            elif self.style == 4:
+                line_points = [self.getAxis(bins, i, self.rad_min, ratio),
+                               self.getAxis(bins, i, self.rad_min + hist[i] * self.rad_div, ratio)]
+                draw.line(line_points, width=line_thick, fill=color, joint='curve')
+                circle(draw, line_points[0], line_thick * 1.5, color)
+                circle(draw, line_points[1], line_thick * 1.5, color)
+            elif self.style == 5:
                 p_gap = line_thick / 2
                 p_size = line_thick / 2
-                p_n = int(((hist[i] * self.rad_div) + p_size) / (p_gap + p_size)) + 1
+                p_n = int(((hist[i] * self.rad_div) + p_size) / (p_gap + p_size))
                 for ip in range(p_n):
                     p_rad = (p_gap + p_size) * ip
                     circle(draw, self.getAxis(bins, i, self.rad_min + p_rad, ratio), line_thick / 2, color)
+                circle(draw, self.getAxis(bins, i, self.rad_min + hist[i] * self.rad_div, ratio), line_thick * 1.5,
+                       color)
+            elif self.style == 6:
+                p_gap = line_thick / 2
+                p_size = line_thick / 2
+                p_n = int(((hist[i] * self.rad_div) + p_size) / (p_gap + p_size))
+                for ip in range(p_n):
+                    p_rad = (p_gap + p_size) * ip
+                    circle(draw, self.getAxis(bins, i, self.rad_min + p_rad, ratio), line_thick / 2, color)
+                circle(draw, self.getAxis(bins, i, self.rad_min, ratio), line_thick * 1.5, color)
+                circle(draw, self.getAxis(bins, i, self.rad_min + hist[i] * self.rad_div, ratio), line_thick * 1.5,
+                       color)
+            elif self.style == 7:
+                circle(draw, self.getAxis(bins, i, self.rad_min, ratio), line_thick * 1.5, color)
+                circle(draw, self.getAxis(bins, i, self.rad_min + hist[i] * self.rad_div, ratio), line_thick * 1.5,
+                       color)
             else:
                 line_points = [self.getAxis(bins, i, self.rad_min, ratio),
                                self.getAxis(bins, i, self.rad_min + hist[i] * self.rad_div, ratio)]
@@ -192,6 +238,11 @@ class AudioVisualizer:
         canvas = canvas.resize((self.width, self.height), Image.ANTIALIAS)
 
         output = self.background.copy()
+        if rotate != 0 and fg_img is not None and bg_mode > -2 and (not bg_mode == 2):
+            angle = -(rotate * frame_pt / fps / 60) * 360
+            rotate_img = fg_img.rotate(angle, resample=Image.BICUBIC)
+            output = pasteMiddle(rotate_img, output, glow=False, blur=0, bright=1)
+
         output.paste(canvas, (0, 0), canvas)
         return output
 
@@ -206,23 +257,24 @@ class AudioVisualizer:
 def loopAverage(arr_in, ratio=0.01):
     if ratio < 0:
         ratio = 0
-    elif ratio >1:
+    elif ratio > 1:
         ratio = 1
-    avg_size = round(len(arr_in)*ratio)
-    k_size = int(2*avg_size+1)
-    if k_size <= 0:
+    avg_size = round(len(arr_in) * ratio)
+    norm_sig = avg_size * 0.5
+    k_size = int(2 * avg_size + 1)
+    if k_size <= 0 or norm_sig <= 0:
         return arr_in
 
-    arr = np.concatenate((arr_in[-avg_size:], arr_in,arr_in[:avg_size]), axis=None)
+    arr = np.concatenate((arr_in[-avg_size:], arr_in, arr_in[:avg_size]), axis=None)
     arr_out = arr_in.copy()
 
-    norm_x = np.arange(-avg_size,avg_size+1)
-    norm_sig = avg_size*0.5
-    norm_y = 1/(norm_sig*np.sqrt(2*np.pi))*np.exp(-norm_x*norm_x/(2*norm_sig*norm_sig))
+    norm_x = np.arange(-avg_size, avg_size + 1)
+
+    norm_y = 1 / (norm_sig * np.sqrt(2 * np.pi)) * np.exp(-norm_x * norm_x / (2 * norm_sig * norm_sig))
     for i in range(len(arr_out)):
-        arr_out[i] = np.sum(arr[i:i+k_size]*norm_y)
+        arr_out[i] = np.sum(arr[i:i + k_size] * norm_y)
     return arr_out
 
-if __name__ == '__main__':
 
-    loopAverage([1,2,3,4,5,6,7,8,9,10],0.1)
+if __name__ == '__main__':
+    loopAverage([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 0.1)

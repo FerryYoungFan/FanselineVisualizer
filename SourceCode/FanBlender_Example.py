@@ -36,7 +36,7 @@ if __name__ == '__main__':
                scalar=1.0, smooth=5,
                style=1, linewidth=2.0)
     """
-    Set Spectrum Style:
+    Set Spectrum:
     bins: Number of spectrums
     lower: Lower Frequency
     upper: Upper Frequency
@@ -44,18 +44,19 @@ if __name__ == '__main__':
     bright: Brightness of Spectrum
     scalar: Sensitivity (Scalar) of Analyzer (Default:1.0)
     smooth: Stabilize Spectrum (Range: 0 - 10)
-    style: 0: Solid Line Style, 1: Dot Line Style
+    style: 0-7 for Different Spectrum Styles
     linewidth: Relative Width of Spectrum Line (0.5-20)
     """
-    fb.setVideoInfo(width=720, height=1280, fps=30, br_Mbps=5,
-                    blur_bg=True, use_glow=True, bg_mode=0)
+    fb.setVideoInfo(width=480, height=480, fps=30.0, br_Mbps=1.0,
+                    blur_bg=True, use_glow=True, bg_mode=0, rotate=2.0)
     """
     Video info
     br_Mbps: Bit Rate of Video (Mbps)
     blur_bg: Blur the background
     use_glow: Add Glow Effect to Spectrum and Text
     bg_mode: 0: Normal Background, 2: Background Only, -1: Transparent Background, -2: Spectrum Only
+    rotate: Rotate Foreground (r/min, Positive for Clockwise)
     """
-    fb.previewBackground()  # Preview before blending
+    fb.previewBackground(localViewer=True)  # Preview before blending
     fb.setAudioInfo(normal=False, br_kbps=192)  # Audio info
     fb.runBlending()  # Blend the Video
