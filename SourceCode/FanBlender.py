@@ -1,3 +1,10 @@
+try:
+    from _CheckEnvironment import checkEnvironment
+
+    checkEnvironment(True)
+except:
+    pass
+
 from FanWheels_PIL import *
 from FanWheels_ffmpeg import *
 from FanAudioVisualizer import AudioVisualizer, AudioAnalyzer
@@ -8,24 +15,12 @@ import numpy as np
 
 import threading, time, os
 
-__version__ = "1.0.5"
+__version__ = "1.0.6"
 
 """
 Audio Visualizer
 By Twitter @FanKetchup
 https://github.com/FerryYoungFan/FanselineVisualizer
-
-Require:
-
-Python 3.7	    V 3.7.4
-
-numpy		    V 1.19.0
-Pillow		    V 7.2.0
-imageio		    V 2.9.0
-imageio-ffmpeg	V 0.4.2
-pydub		    V 0.24.1*
-(* No need to install ffmpeg for pydub, since it shares ffmpeg with imageio-ffmpeg.)
-
 """
 
 
@@ -157,7 +152,8 @@ class FanBlender:
         self.linewidth = 1.0
         self.rotate = 0
         self._line_thick = int(round(self.linewidth * 4 / 1080 * self._frame_size))
-        self._amplify = self.scalar * 3 / 80 * self.bins * np.power(1500 / (self.fq_up - self.fq_low), 0.5)
+
+        self._amplify =self.setAmplify()
 
         self.visualizer = None
         self.analyzer = None
@@ -175,6 +171,10 @@ class FanBlender:
         self.frame_lock = None
 
         self.bg_mode = 0
+        self.bg_blended = False
+
+    def setAmplify(self):
+        return self.scalar * 7  * np.sqrt(self.bins/80) * np.power(1500 / (self.fq_up - self.fq_low), 0.5)
 
     def ensure_dir(self, file_path):
         directory = os.path.dirname(file_path)
@@ -270,6 +270,7 @@ class FanBlender:
             self._font_size = int(round(30 / 1080 * self._frame_size * self._relsize))
 
         self.font = font
+        self.bg_blended = False
 
     def setSpec(self, bins=None, lower=None, upper=None, color=None, bright=None, scalar=None, smooth=None, style=None,
                 linewidth=None):
@@ -330,9 +331,10 @@ class FanBlender:
                 linewidth = 0.01
             self.linewidth = float(linewidth)
 
-        self._amplify = self.scalar * 7 / 80 * self.bins * np.power(1500 / (self.fq_up - self.fq_low), 0.5)
+        self._amplify = self.setAmplify()
         self._line_thick = int(round(self.linewidth * 4 / 1080 * self._frame_size))
         self.visualizer = None
+        self.bg_blended = False
 
     def setVideoInfo(self, width=None, height=None, fps=None, br_Mbps=None, blur_bg=None, use_glow=None, bg_mode=None,
                      rotate=None):
@@ -376,6 +378,7 @@ class FanBlender:
         self._line_thick = int(round(self.linewidth * 4 / 1080 * self._frame_size))
 
         self.visualizer = None
+        self.bg_blended = False
 
     def setAudioInfo(self, normal=None, br_kbps=None):
         if normal is not None:
@@ -387,6 +390,8 @@ class FanBlender:
             self.audio_bit_rate = int(round(br_kbps))
 
     def genBackground(self):
+        if self.bg_blended:
+            return
         image, bg = None, None
         try:
             image = Image.open(self.image_path).convert('RGBA')
@@ -456,6 +461,7 @@ class FanBlender:
                                           line_thick=self._line_thick,
                                           blur=self._blur, style=self.style)
         self.log("Blending Background... Done!")
+        self.bg_blended = True
 
     def previewBackground(self, localViewer=False):
         self.genBackground()
@@ -475,6 +481,9 @@ class FanBlender:
                 return
 
     def genAnalyzer(self):
+        if self.sound_path is None or not os.path.exists(str(self.sound_path)):
+            self.log("Error: Audio file not found!")
+            return
         try:
             toTempWaveFile(self.sound_path, self._temp_audio_path)
         except:
@@ -491,9 +500,13 @@ class FanBlender:
     def runBlending(self):
         if self.isRunning:
             return
+        self.removeTemp()
         self.freezeConsole(True)
         self.genBackground()
         self.genAnalyzer()
+        if self._temp_audio_path is None or not os.path.exists(str(self._temp_audio_path)):
+            return
+
         self.isRunning = True
 
         if self.analyzer is None:
@@ -582,10 +595,10 @@ if __name__ == '__main__':
     fb.setText(text="Your Text Here", font="./Source/font.otf", relsize=1.0)
     # Set Text at the Bottom (Relative Font Size: 0.3 - 3.1)
 
-    fb.setSpec(bins=80, lower=20, upper=1500,
+    fb.setSpec(bins=60, lower=20, upper=1500,
                color=fb.color_dic["Gradient: Green - Blue"], bright=0.6,
-               scalar=1.0, smooth=5,
-               style=1, linewidth=2.0)
+               scalar=1.0, smooth=2,
+               style=1, linewidth=1.0)
     """
     Set Spectrum:
     bins: Number of spectrums
@@ -599,7 +612,7 @@ if __name__ == '__main__':
     linewidth: Relative Width of Spectrum Line (0.5-20)
     """
     fb.setVideoInfo(width=480, height=480, fps=30.0, br_Mbps=1.0,
-                    blur_bg=True, use_glow=True, bg_mode=0, rotate=2.0)
+                    blur_bg=True, use_glow=True, bg_mode=0, rotate=1.5)
     """
     Video info
     br_Mbps: Bit Rate of Video (Mbps)

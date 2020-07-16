@@ -5,7 +5,7 @@ import subprocess
 def ffcmd(args=""):
     ffpath = imageio_ffmpeg.get_ffmpeg_exe()
     cmd = ffpath + " " + args
-    print("ffmpeg: ", cmd)
+    print("ffmpeg:", cmd)
 
     with subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True) as p:
         output, errors = p.communicate()
@@ -50,5 +50,4 @@ def cvtFileName(path, new_format=None):
 
 
 if __name__ == '__main__':
-    # ffcmd("-version")
-    print(cvtFileName("C:/text/xxx.mp4", "mov"))
+    ffcmd("-version")

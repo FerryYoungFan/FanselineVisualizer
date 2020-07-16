@@ -12,11 +12,10 @@ class ImageViewer(Frame):
         self.master = master
         self.max_w, self.max_h = 1280, 720
         self.img_copy, self.image, self.background_image = None, None, None
-        self.background = Label(self)
+        self.background = Label(self,bg="#666666")
         self.background.pack(fill=BOTH, expand=YES)
         self.background.bind('<Configure>', self._resize_image)
-        self.configure(background="black")
-        self.pack(fill=BOTH, expand=YES)
+        self.place(relx=0, rely=0, relwidth=1, relheight=1, anchor='nw')
         self.ratio = 1.0
         self.background.bind("<MouseWheel>", self._on_mousewheel)
         self.bind_all('<Key>', self.shortCut)
@@ -26,10 +25,9 @@ class ImageViewer(Frame):
 
     def _genMenu(self):
         self.menu = Menu(self, tearoff=0)
-        self.menu.add_command(label=self.lang["Save as..."], command=self.saveImage)
+        self.menu.add_command(label=self.lang["Save Image as..."], command=self.saveImage)
         # self.menu.add_separator()
         self.master.bind("<Button-3>", self._popupMenu)
-        self.master.bind("<Button-1>", self._popupMenu)
 
     def _on_mousewheel(self, event):
         fac = (event.delta / 120)
@@ -103,8 +101,6 @@ class ImageViewer(Frame):
         self._genMenu()
 
     def saveImage(self):
-
-        filename = self.lang["Image files"]
         allfile = self.lang["All files"]
         if self.img_copy:
             f = asksaveasfile(mode='w', defaultextension=".png", initialfile=self.lang["Snap"],
@@ -117,7 +113,6 @@ class ImageViewer(Frame):
             try:
                 if os.path.exists(fname):
                     os.remove(fname)
-                suffix = fname.split(".")[-1]
                 self.img_copy.save(fname, quality=100)
             except:
                 tkinter.messagebox.showinfo(self.lang["Notice"], self.lang["Cannot Save Image!"])

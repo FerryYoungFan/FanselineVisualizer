@@ -15,7 +15,7 @@ lang_cn_s = {
     "Output Path Selected: ": "已选择输出路径： ",
     "Font Selected: ": "已选择字体： ",
     "Cannot Blend": "无法开始渲染",
-    "Save as...": "另存为……",
+    "Save Image as...": "图片另存为……",
     "Snap": "快照",
     "Cannot Save Image!": "无法储存图片！",
 
@@ -104,10 +104,11 @@ lang_cn_s = {
     "Normal BG Only": "仅正常背景",
     "Transparent": "透明背景",
     "Spectrum Only": "仅频谱",
-    "Glow Effect": "发光效果",
+    "Glow Effect (SLOW)": "发光效果【缓慢】",
     "Project Website: ": "项目网站：",
 
-    "Spin FG(rpm):": "旋转主图(转/分)："
+    "Spin FG(rpm):": "旋转主图(转/分)：",
+    "Error! Cannot save config!": "错误！不能保存配置！",
 
 }
 

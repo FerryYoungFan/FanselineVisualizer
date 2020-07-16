@@ -13,18 +13,7 @@ from tkinter import scrolledtext
 """
 Audio Visualizer - GUI
 By Twitter @FanKetchup
-
-Require:
-
-Python 3.7	    V 3.7.4
-
-numpy		    V 1.19.0
-Pillow		    V 7.2.0
-imageio		    V 2.9.0
-imageio-ffmpeg	V 0.4.2
-pydub		    V0.24.1*
-(* No need to install ffmpeg for pydub, since it shares ffmpeg with imageio-ffmpeg.)
-
+https://github.com/FerryYoungFan/FanselineVisualizer
 """
 
 # GUI Language
@@ -94,6 +83,7 @@ class InfoBridge:
             list_lang["state"] = "readonly"
             list_bg_mode["state"] = "readonly"
             list_style["state"] = "readonly"
+            root_view.withdraw()
 
     def realTime(self, img):
         global frame2
@@ -427,8 +417,14 @@ def presetAudio(*args):
 
 def saveConfig():
     vdic = getAllValues()
-    with open('./Source/config.pickle', 'wb') as handle:
-        pickle.dump(vdic, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    try:
+        directory = os.path.dirname("./Source/")
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+        with open('./Source/config.pickle', 'wb') as handle:
+            pickle.dump(vdic, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    except:
+        clog(lang["Error! Cannot save config!"])
 
 
 def loadConfig():
@@ -654,7 +650,7 @@ if __name__ == '__main__':
         bindPreview(tk_bg_mode)
         tk_blur_bg = tk.BooleanVar(value=True)
         bindPreview(tk_blur_bg)
-        tk_use_glow = tk.BooleanVar(value=True)
+        tk_use_glow = tk.BooleanVar(value=False)
         bindPreview(tk_use_glow)
         tk_rotate = tk.DoubleVar(value=0)
 
@@ -683,6 +679,8 @@ if __name__ == '__main__':
 
         root_view = tk.Toplevel(root)
         root_view.withdraw()
+        canvas = tk.Canvas(root_view, width=GUI_WIDTH//2, height=GUI_HEIGHT//2)
+        canvas.pack()
         frame2 = ImageViewer(root_view)
         frame2.setGUI(GUI_WIDTH * 2 / 3, GUI_HEIGHT * 2 / 3)
         frame2.setLanguage(lang)
@@ -708,9 +706,9 @@ if __name__ == '__main__':
             lang["Music-HQ"] + " (320 kbps)": [320, 20, 2500, False, 1.0, 2],
             lang["Music-MQ"] + " (128 kbps)": [128, 20, 2500, False, 1.0, 2],
             lang["Music-LQ"] + " (48 kbps)": [48, 20, 2500, False, 1.0, 2],
-            lang["Voice-HQ"] + " (320 kbps)": [320, 80, 2000, True, 1.0, 3],
-            lang["Voice-MQ"] + " (128 kbps)": [128, 80, 2000, True, 1.0, 3],
-            lang["Voice-LQ"] + " (48 kbps)": [48, 80, 2000, True, 1.0, 3],
+            lang["Voice-HQ"] + " (320 kbps)": [320, 20, 2500, True, 1.0, 5],
+            lang["Voice-MQ"] + " (128 kbps)": [128, 40, 2200, True, 1.0, 5],
+            lang["Voice-LQ"] + " (48 kbps)": [48, 80, 2000, True, 1.0, 5],
         }
         list_preseta["values"] = dict2tuple(audio_dic)
         list_preseta.current(0)
@@ -866,7 +864,7 @@ if __name__ == '__main__':
         label_bins.place(relwidth=0.1, relheight=relh, relx=0.35, rely=rely, anchor='nw')
         entry_bins = ttk.Combobox(master=frame1, textvariable=tk_bins)
         entry_bins["values"] = (12, 24, 36, 48, 60, 80, 100, 120)
-        entry_bins.current(5)
+        entry_bins.current(3)
         entry_bins.place(relwidth=0.05, relheight=relh, relx=0.45, rely=rely, anchor='nw')
 
         label_scalar = tk.Label(master=frame1, textvariable=tk.StringVar(value=lang["Spectrum Scalar:"]), anchor="e")
@@ -955,7 +953,7 @@ if __name__ == '__main__':
         entry_rotate.current(0)
         entry_rotate.place(relwidth=0.05, relheight=relh, relx=0.45, rely=rely, anchor='nw')
 
-        check_use_glow = tk.Checkbutton(master=frame1, text=lang["Glow Effect"],
+        check_use_glow = tk.Checkbutton(master=frame1, text=lang["Glow Effect (SLOW)"],
                                         variable=tk_use_glow, onvalue=True, offvalue=False, anchor="e")
         check_use_glow.place(relwidth=0.15, relheight=relh, relx=0.55, rely=rely, anchor='nw')
 

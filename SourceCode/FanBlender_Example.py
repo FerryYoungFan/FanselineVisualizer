@@ -1,21 +1,9 @@
 from FanBlender import FanBlender
 
 """
-Audio Visualizer
+Audio Visualizer - Example
 By Twitter @FanKetchup
 https://github.com/FerryYoungFan/FanselineVisualizer
-
-Require:
-
-Python 3.7	    V 3.7.4
-
-numpy		    V 1.19.0
-Pillow		    V 7.2.0
-imageio		    V 2.9.0
-imageio-ffmpeg	V 0.4.2
-pydub		    V0.24.1*
-(* No need to install ffmpeg for pydub, since it shares ffmpeg with imageio-ffmpeg.)
-
 """
 
 if __name__ == '__main__':
@@ -31,10 +19,10 @@ if __name__ == '__main__':
     fb.setText(text="Your Text Here", font="./Source/font.otf", relsize=1.0)
     # Set Text at the Bottom (Relative Font Size: 0.3 - 3.1)
 
-    fb.setSpec(bins=80, lower=20, upper=1500,
+    fb.setSpec(bins=60, lower=20, upper=1500,
                color=fb.color_dic["Gradient: Green - Blue"], bright=0.6,
-               scalar=1.0, smooth=5,
-               style=1, linewidth=2.0)
+               scalar=1.0, smooth=2,
+               style=1, linewidth=1.0)
     """
     Set Spectrum:
     bins: Number of spectrums
@@ -48,7 +36,7 @@ if __name__ == '__main__':
     linewidth: Relative Width of Spectrum Line (0.5-20)
     """
     fb.setVideoInfo(width=480, height=480, fps=30.0, br_Mbps=1.0,
-                    blur_bg=True, use_glow=True, bg_mode=0, rotate=2.0)
+                    blur_bg=True, use_glow=True, bg_mode=0, rotate=1.5)
     """
     Video info
     br_Mbps: Bit Rate of Video (Mbps)
