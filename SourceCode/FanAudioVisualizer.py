@@ -168,6 +168,7 @@ class AudioVisualizer:
 
         ratio = 2  # antialiasing ratio
         line_thick = self.line_thick * ratio
+        print("line_thick:",line_thick)
 
         brt = int(round(bright * 255))
         if brt > 255:

@@ -327,12 +327,13 @@ class FanBlender:
         if linewidth is not None:
             if linewidth > 50:
                 linewidth = 50
-            elif linewidth < 0.01:
-                linewidth = 0.01
+            elif linewidth < 0.05:
+                linewidth = 0.05
             self.linewidth = float(linewidth)
+            print(self.linewidth)
 
         self._amplify = self.setAmplify()
-        self._line_thick = self.linewidth * 4 / 1080 * self._frame_size
+        self._line_thick = self.linewidth * 4 * self._frame_size / 1080
         self.visualizer = None
         self.bg_blended = False
 
@@ -375,7 +376,7 @@ class FanBlender:
         self._font_size = int(round(30 / 1080 * self._frame_size * self._relsize))
         self._blur = int(round(2 / 1080 * self._frame_size))
         self._blur_bg = int(round(41 / 1080 * self._frame_size))
-        self._line_thick = int(round(self.linewidth * 4 / 1080 * self._frame_size))
+        self._line_thick = self.linewidth * 4 / 1080 * self._frame_size
 
         self.visualizer = None
         self.bg_blended = False
@@ -454,7 +455,6 @@ class FanBlender:
         if self.text_bottom is None or self.text_bottom == "":
             if self.logo_path is None or not os.path.exists(self.logo_path):
                 gap = 0
-
         self.visualizer = AudioVisualizer(img=background,
                                           rad_min=self._frame_size / 4 * 1.1,
                                           rad_max=min(self.frame_height / 2 - gap, self._frame_size / 2.1),
