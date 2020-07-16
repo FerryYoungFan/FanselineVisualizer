@@ -1,5 +1,5 @@
 Welcome to Fanseline Audio Visualizer!
-欢迎使用“室邻音频可视化视频制作工具”！
+欢迎使用“帆室邻音频可视化视频制作工具”！
 
 By Twitter @FanKetchup
 https://github.com/FerryYoungFan/FanselineVisualizer
