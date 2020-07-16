@@ -136,7 +136,10 @@ def glowText(img, text=None, font_size=35, font_set=None, bright=1.0, blur=2, lo
         lg_nh = round(font_size * hoffset)
         lg_nw = round(lg_w * lg_nh / lg_h)
         logo = logo.resize((lg_nw, lg_nh), Image.ANTIALIAS)
-        xoffset = lg_nw + font_size / 4
+        if text:
+            xoffset = lg_nw + font_size / 4
+        else:
+            xoffset = lg_nw
         w = w + xoffset
         try:
             canvas.paste(logo, (round((width - w) / 2), round(height - 2 * font_size)), logo)

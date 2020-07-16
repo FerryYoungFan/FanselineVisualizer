@@ -218,26 +218,22 @@ def getAllValues():
         return None
 
     def checkInt(inttk):
-        if inttk.get() is not None:
-            try:
-                num = float(inttk.get())
-            except:
-                return None
-            else:
-                return int(round(num))
-        else:
+
+        try:
+            num = float(inttk.get())
+        except:
             return None
+        else:
+            return int(round(num))
+
 
     def checkFloat(floattk):
-        if floattk.get() is not None:
-            try:
-                num = float(floattk.get())
-            except:
-                return None
-            else:
-                return num
-        else:
+        try:
+            num = float(floattk.get())
+        except:
             return None
+        else:
+            return num
 
     if checkStr(tk_filename) is not None:
         fname = checkStr(tk_filename) + ".mp4"

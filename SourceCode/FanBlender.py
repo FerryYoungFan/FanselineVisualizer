@@ -153,7 +153,7 @@ class FanBlender:
         self.rotate = 0
         self._line_thick = int(round(self.linewidth * 4 / 1080 * self._frame_size))
 
-        self._amplify =self.setAmplify()
+        self._amplify = self.setAmplify()
 
         self.visualizer = None
         self.analyzer = None
@@ -174,7 +174,7 @@ class FanBlender:
         self.bg_blended = False
 
     def setAmplify(self):
-        return self.scalar * 7  * np.sqrt(self.bins/80) * np.power(1500 / (self.fq_up - self.fq_low), 0.5)
+        return self.scalar * 7 * np.sqrt(self.bins / 80) * np.power(1500 / (self.fq_up - self.fq_low), 0.5)
 
     def ensure_dir(self, file_path):
         directory = os.path.dirname(file_path)
@@ -332,7 +332,7 @@ class FanBlender:
             self.linewidth = float(linewidth)
 
         self._amplify = self.setAmplify()
-        self._line_thick = int(round(self.linewidth * 4 / 1080 * self._frame_size))
+        self._line_thick = self.linewidth * 4 / 1080 * self._frame_size
         self.visualizer = None
         self.bg_blended = False
 
