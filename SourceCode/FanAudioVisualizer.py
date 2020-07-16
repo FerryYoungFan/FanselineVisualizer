@@ -168,7 +168,6 @@ class AudioVisualizer:
 
         ratio = 2  # antialiasing ratio
         line_thick = self.line_thick * ratio
-        print("line_thick:",line_thick)
 
         brt = int(round(bright * 255))
         if brt > 255:
@@ -229,7 +228,7 @@ class AudioVisualizer:
             else:
                 line_points = [self.getAxis(bins, i, self.rad_min, ratio),
                                self.getAxis(bins, i, self.rad_min + hist[i] * self.rad_div, ratio)]
-                draw.line(line_points, width=line_thick, fill=color, joint='curve')
+                draw.line(line_points, width=int(round(line_thick)), fill=color)
                 circle(draw, line_points[0], line_thick / 2, color)
                 circle(draw, line_points[1], line_thick / 2, color)
         if use_glow:

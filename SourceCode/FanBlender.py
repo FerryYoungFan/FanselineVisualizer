@@ -328,9 +328,8 @@ class FanBlender:
             if linewidth > 50:
                 linewidth = 50
             elif linewidth < 0.05:
-                linewidth = 0.05
+                linewidth = 0.01
             self.linewidth = float(linewidth)
-            print(self.linewidth)
 
         self._amplify = self.setAmplify()
         self._line_thick = self.linewidth * 4 * self._frame_size / 1080
