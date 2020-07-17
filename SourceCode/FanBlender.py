@@ -15,7 +15,7 @@ import numpy as np
 
 import threading, time, os
 
-__version__ = "1.0.6"
+__version__ = "1.0.7"
 
 """
 Audio Visualizer
@@ -44,6 +44,7 @@ class blendingThread(threading.Thread):
                 amplify=self.parent._amplify,
                 color_mode=self.parent.spectrum_color,
                 bright=self.parent._bright,
+                saturation=self.parent._saturation,
                 use_glow=self.parent.use_glow,
                 rotate=self.parent.rotate,
                 fps=self.parent.fps,
@@ -126,6 +127,7 @@ class FanBlender:
 
         self.spectrum_color = "color4x"
         self._bright = 1.0
+        self._saturation = 1.0
         self.bins = 80
         self.smooth = 0
         self.fq_low = 20
@@ -142,12 +144,13 @@ class FanBlender:
         self._frame_size = min(self.frame_width, self.frame_height)
         self._relsize = 1.0
         self._font_size = int(round(30 / 1080 * self._frame_size * self._relsize))
+        self._text_brt = 1.0
         # A good ratio for text and frame size
 
         self._blur = int(round(2 / 1080 * self._frame_size))
         self._blur_bg = int(round(41 / 1080 * self._frame_size))
         self.blur_bg = True
-        self.use_glow = True
+        self.use_glow = False
         self.style = 0
         self.linewidth = 1.0
         self.rotate = 0
@@ -252,7 +255,7 @@ class FanBlender:
             self.ensure_dir(os.path.join(output_path, filename))
             self.output_path = cvtFileName(os.path.join(output_path, filename), "mp4")
 
-    def setText(self, text="", font=None, relsize=None):
+    def setText(self, text="", font=None, relsize=None, text_brt=1.0):
         self.text_bottom = text
         if font is None or (not os.path.exists(font)):
             if os.path.exists("./Source/font.otf"):
@@ -262,37 +265,25 @@ class FanBlender:
             else:
                 font = "Arial.ttf"
         if relsize is not None:
-            if relsize < 0.3:
-                relsize = 0.1
-            elif relsize > 3.1:
-                relsize = 3.1
-            self._relsize = relsize
+            self._relsize = clip(relsize, 0.1, 3.1)
             self._font_size = int(round(30 / 1080 * self._frame_size * self._relsize))
+        if text_brt is not None:
+            self._text_brt = clip(text_brt, 0, 1)
 
         self.font = font
         self.bg_blended = False
 
-    def setSpec(self, bins=None, lower=None, upper=None, color=None, bright=None, scalar=None, smooth=None, style=None,
+    def setSpec(self, bins=None, lower=None, upper=None, color=None, bright=None, saturation=None, scalar=None,
+                smooth=None, style=None,
                 linewidth=None):
         if bins is not None:
-            if bins < 2:
-                bins = 2
-            elif bins > 250:
-                bins = 250
-            self.bins = int(bins)
+            self.bins = int(clip(bins, 2, 250))
 
         if lower is not None:
-            if lower > 22000:
-                lower = 22000
-            elif lower < 16:
-                lower = 16
-            self.fq_low = int(lower)
+            self.fq_low = int(clip(lower, 16, 22000))
 
         if upper is not None:
-            if upper > 22000:
-                upper = 22000
-            elif upper < 16:
-                upper = 16
+            upper = int(clip(upper, 16, 22000))
             if upper < self.fq_low:
                 upper = self.fq_low
             self.fq_up = int(upper)
@@ -301,35 +292,22 @@ class FanBlender:
             self.spectrum_color = color
 
         if bright is not None:
-            if bright < 0:
-                bright = 0
-            elif bright > 1:
-                bright = 1
-            self._bright = bright
+            self._bright = clip(bright, 0, 1)
+
+        if saturation is not None:
+            self._saturation = clip(saturation, 0, 1)
 
         if scalar is not None:
-            if scalar < 0.1:
-                scalar = 0.1
-            elif scalar > 10:
-                scalar = 10
-            self.scalar = scalar
+            self.scalar = clip(scalar, 0.1, 10)
 
         if smooth is not None:
-            if smooth < 0:
-                smooth = 0
-            elif smooth > 10:
-                smooth = 10
-            self.smooth = int(round(smooth))
+            self.smooth = int(round(clip(smooth, 0, 10)))
 
         if style is not None:
             self.style = style
 
         if linewidth is not None:
-            if linewidth > 50:
-                linewidth = 50
-            elif linewidth < 0.05:
-                linewidth = 0.01
-            self.linewidth = float(linewidth)
+            self.linewidth = float(clip(linewidth, 0.01, 50))
 
         self._amplify = self.setAmplify()
         self._line_thick = self.linewidth * 4 * self._frame_size / 1080
@@ -338,26 +316,17 @@ class FanBlender:
 
     def setVideoInfo(self, width=None, height=None, fps=None, br_Mbps=None, blur_bg=None, use_glow=None, bg_mode=None,
                      rotate=None):
-        minwidth = 16
         if width is not None:
-            if width < minwidth:
-                width = minwidth
-            self.frame_width = int(width)
+            self.frame_width = int(clip(width, 16, 4096))
         if height is not None:
-            if height < minwidth:
-                height = minwidth
-            self.frame_height = int(height)
+            self.frame_height = int(clip(height, 16, 4096))
         if fps is not None:
-            if fps < 1:
-                fps = 1
-            self.fps = int(fps)
+            self.fps = int(clip(fps, 1, 120))
         if br_Mbps is None:
             br_Mbps = 15 * (self.frame_width * self.frame_height * self.fps) / (1920 * 1080 * 30)
             self.bit_rate = br_Mbps
         else:
-            if br_Mbps < 0.01:
-                br_Mbps = 0.01
-            self.bit_rate = br_Mbps
+            self.bit_rate = clip(br_Mbps, 0.01, 200)
 
         if blur_bg is not None:
             self.blur_bg = blur_bg
@@ -385,9 +354,7 @@ class FanBlender:
             self.audio_normal = normal
 
         if br_kbps is not None:
-            if br_kbps < 5:
-                br_kbps = 5
-            self.audio_bit_rate = int(round(br_kbps))
+            self.audio_bit_rate = int(round(clip(br_kbps, 5, 10000)))
 
     def genBackground(self):
         if self.bg_blended:
@@ -447,10 +414,10 @@ class FanBlender:
         if self.bg_mode >= -1 and not self.bg_mode == 2:
             background = pasteMiddle(foreground, background, glow=self.use_glow, blur=self._blur * 2,
                                      bright=self._bright)
-            background = glowText(background, self.text_bottom, self._font_size, self.font, bright=self._bright,
+            background = glowText(background, self.text_bottom, self._font_size, self.font, bright=self._text_brt,
                                   blur=self._blur, logo=logofile, use_glow=self.use_glow)
 
-        gap = self._font_size * 2
+        gap = self._font_size * 2.1
         if self.text_bottom is None or self.text_bottom == "":
             if self.logo_path is None or not os.path.exists(self.logo_path):
                 gap = 0
@@ -464,10 +431,11 @@ class FanBlender:
 
     def previewBackground(self, localViewer=False):
         self.genBackground()
-        xs = np.linspace(0, self.bins / 3 * np.pi, self.bins)
+        xs = np.linspace(0, 10 * np.pi, self.bins)
         ys = 0.5 + 0.6 * np.cos(xs)
         frame_sample = self.visualizer.getFrame(hist=ys, amplify=1, color_mode=self.spectrum_color, bright=self._bright,
-                                                use_glow=self.use_glow)
+                                                saturation=self._saturation, use_glow=self.use_glow, fg_img=self.fg_img,
+                                                bg_mode=self.bg_mode)
         if localViewer:
             frame_sample.show()
         return frame_sample
@@ -581,6 +549,20 @@ class FanBlender:
         removeFile(cvtFileName(self._temp_video_path, "mov"))
 
 
+def clip(value, low_in=0.0, up_in=0.0):
+    if value is None:
+        return 0
+    if low_in > up_in:
+        low, up = up_in, low_in
+    else:
+        low, up = low_in, up_in
+    if value < low:
+        return low
+    if value > up:
+        return up
+    return value
+
+
 if __name__ == '__main__':
     # Example of Using FanBlender
 
@@ -591,11 +573,11 @@ if __name__ == '__main__':
                    logo_path=r"./Source/logo.png")  # Set File Path
     fb.setOutputPath(output_path=r"./Output",
                      filename="test.mp4")  # Set Output Path
-    fb.setText(text="Your Text Here", font="./Source/font.otf", relsize=1.0)
+    fb.setText(text="Your Text Here", font="./Source/font.otf", relsize=1.0, text_brt=0.8)
     # Set Text at the Bottom (Relative Font Size: 0.3 - 3.1)
 
     fb.setSpec(bins=60, lower=20, upper=1500,
-               color=fb.color_dic["Gradient: Green - Blue"], bright=0.6,
+               color=fb.color_dic["Gradient: Green - Blue"], bright=0.6, saturation=0.8,
                scalar=1.0, smooth=2,
                style=1, linewidth=1.0)
     """
@@ -605,9 +587,10 @@ if __name__ == '__main__':
     upper: Upper Frequency
     color: Color of Spectrum
     bright: Brightness of Spectrum
+    saturation: Color Saturation of Spectrum
     scalar: Sensitivity (Scalar) of Analyzer (Default:1.0)
     smooth: Stabilize Spectrum (Range: 0 - 10)
-    style: 0-7 for Different Spectrum Styles
+    style: 0-17 for Different Spectrum Styles (-1 for None)
     linewidth: Relative Width of Spectrum Line (0.5-20)
     """
     fb.setVideoInfo(width=480, height=480, fps=30.0, br_Mbps=1.0,

@@ -91,6 +91,11 @@ def circle(draw, center, radius, fill):
                  fill=fill, outline=None)
 
 
+def rectangle(draw, center, radius, fill):
+    draw.rectangle((center[0] - radius + 1, center[1] - radius + 1, center[0] + radius - 1, center[1] + radius - 1),
+                   fill=fill, outline=None)
+
+
 def getCycleHue(start, end, bins, index, cycle=1):
     div = end - start
     fac = index / bins * cycle
@@ -148,12 +153,15 @@ class AudioVisualizer:
         self.mdpx = self.width / 2
         self.mdpy = self.height / 2
         self.line_thick = line_thick
-        if style in [1, 2, 4, 6, 7]:
+        if style in [1, 2, 4, 6, 7, 11, 12, 15, 16]:
             self.rad_min = rad_min + line_thick * 1.5
             self.rad_max = rad_max - line_thick * 1.5
         elif style in [3, 5]:
             self.rad_min = rad_min + line_thick / 2
             self.rad_max = rad_max - line_thick * 1.5
+        elif style in [8]:
+            self.rad_min = rad_min + line_thick * 1.5
+            self.rad_max = rad_max
         else:
             self.rad_min = rad_min + line_thick / 2
             self.rad_max = rad_max - line_thick / 2
@@ -161,13 +169,16 @@ class AudioVisualizer:
         self.blur = blur
         self.style = style
 
-    def getFrame(self, hist, amplify=5, color_mode="color4x", bright=1.0, use_glow=True, rotate=0.0, fps=30.0,
+    def getFrame(self, hist, amplify=5, color_mode="color4x", bright=1.0, saturation=1.0, use_glow=True, rotate=0.0,
+                 fps=30.0,
                  frame_pt=0, bg_mode=0, fg_img=None):
         bins = hist.shape[0]
         hist = np.clip(hist * amplify, 0, 1)
 
         ratio = 2  # antialiasing ratio
-        line_thick = self.line_thick * ratio
+        line_thick = int(round(self.line_thick * ratio))
+        line_thick_bold = int(round(self.line_thick * ratio * 1.5))
+        line_thick_slim = int(round(self.line_thick * ratio / 2))
 
         brt = int(round(bright * 255))
         if brt > 255:
@@ -177,60 +188,211 @@ class AudioVisualizer:
         canvas = Image.new('RGBA', (self.width * ratio, self.height * ratio), (brt, brt, brt, 0))
         draw = ImageDraw.Draw(canvas)
 
+        line_graph_prev = None
         for i in range(bins):
-            color = getColor(bins, i, color_mode, bright)
+            color = getColor(bins, i, color_mode, bright, saturation)
             if self.style == 1:
-                p_gap = line_thick * 1.5
-                p_size = line_thick * 1.5
-                p_n = int(((hist[i] * self.rad_div) + p_size) / (p_gap + p_size))
-                circle(draw, self.getAxis(bins, i, self.rad_min, ratio), line_thick * 1.5, color)
+                p_gap = line_thick_bold
+                p_size = line_thick_bold
+                p_n = int(((hist[i] * self.rad_div) + p_gap) / (p_gap + p_size))
+                circle(draw, self.getAxis(bins, i, self.rad_min, ratio), line_thick_bold, color)
                 for ip in range(p_n):
                     p_rad = (p_gap + p_size) * ip
-                    circle(draw, self.getAxis(bins, i, self.rad_min + p_rad, ratio), line_thick * 1.5, color)
+                    circle(draw, self.getAxis(bins, i, self.rad_min + p_rad, ratio), line_thick_bold, color)
             elif self.style == 2:
-                circle(draw, self.getAxis(bins, i, self.rad_min + hist[i] * self.rad_div, ratio), line_thick * 1.5,
+                circle(draw, self.getAxis(bins, i, self.rad_min + hist[i] * self.rad_div, ratio), line_thick_bold,
                        color)
             elif self.style == 3:
                 line_points = [self.getAxis(bins, i, self.rad_min, ratio),
                                self.getAxis(bins, i, self.rad_min + hist[i] * self.rad_div, ratio)]
-                draw.line(line_points, width=line_thick, fill=color, joint='curve')
-                circle(draw, line_points[0], line_thick / 2, color)
-                circle(draw, line_points[1], line_thick * 1.5, color)
+                draw.line(line_points, width=line_thick, fill=color)
+                circle(draw, line_points[0], line_thick_slim, color)
+                circle(draw, line_points[1], line_thick_bold, color)
             elif self.style == 4:
                 line_points = [self.getAxis(bins, i, self.rad_min, ratio),
                                self.getAxis(bins, i, self.rad_min + hist[i] * self.rad_div, ratio)]
-                draw.line(line_points, width=line_thick, fill=color, joint='curve')
-                circle(draw, line_points[0], line_thick * 1.5, color)
-                circle(draw, line_points[1], line_thick * 1.5, color)
+                draw.line(line_points, width=line_thick, fill=color)
+                circle(draw, line_points[0], line_thick_bold, color)
+                circle(draw, line_points[1], line_thick_bold, color)
             elif self.style == 5:
-                p_gap = line_thick / 2
-                p_size = line_thick / 2
+                p_gap = line_thick_slim
+                p_size = line_thick_slim
                 p_n = int(((hist[i] * self.rad_div) + p_size) / (p_gap + p_size))
                 for ip in range(p_n):
                     p_rad = (p_gap + p_size) * ip
-                    circle(draw, self.getAxis(bins, i, self.rad_min + p_rad, ratio), line_thick / 2, color)
-                circle(draw, self.getAxis(bins, i, self.rad_min + hist[i] * self.rad_div, ratio), line_thick * 1.5,
+                    circle(draw, self.getAxis(bins, i, self.rad_min + p_rad, ratio), line_thick_slim, color)
+                circle(draw, self.getAxis(bins, i, self.rad_min + hist[i] * self.rad_div, ratio), line_thick_bold,
                        color)
             elif self.style == 6:
-                p_gap = line_thick / 2
-                p_size = line_thick / 2
+                p_gap = line_thick_slim
+                p_size = line_thick_slim
                 p_n = int(((hist[i] * self.rad_div) + p_size) / (p_gap + p_size))
                 for ip in range(p_n):
                     p_rad = (p_gap + p_size) * ip
-                    circle(draw, self.getAxis(bins, i, self.rad_min + p_rad, ratio), line_thick / 2, color)
-                circle(draw, self.getAxis(bins, i, self.rad_min, ratio), line_thick * 1.5, color)
-                circle(draw, self.getAxis(bins, i, self.rad_min + hist[i] * self.rad_div, ratio), line_thick * 1.5,
+                    circle(draw, self.getAxis(bins, i, self.rad_min + p_rad, ratio), line_thick_slim, color)
+                circle(draw, self.getAxis(bins, i, self.rad_min, ratio), line_thick_bold, color)
+                circle(draw, self.getAxis(bins, i, self.rad_min + hist[i] * self.rad_div, ratio), line_thick_bold,
                        color)
             elif self.style == 7:
-                circle(draw, self.getAxis(bins, i, self.rad_min, ratio), line_thick * 1.5, color)
-                circle(draw, self.getAxis(bins, i, self.rad_min + hist[i] * self.rad_div, ratio), line_thick * 1.5,
+                circle(draw, self.getAxis(bins, i, self.rad_min, ratio), line_thick_bold, color)
+                circle(draw, self.getAxis(bins, i, self.rad_min + hist[i] * self.rad_div, ratio), line_thick_bold,
                        color)
+            elif self.style == 8:
+                if i % 12 == 0:
+                    lower = i
+                    upper = i + 11
+                    if upper >= len(hist):
+                        upper = len(hist) - 1
+                    local_mean = np.mean(hist[-upper - 1:-lower - 1]) * 2
+                    if local_mean > 1:
+                        local_mean = 1
+                    radius = self.rad_min + local_mean * self.rad_div
+                    left = (self.mdpx - radius) * ratio
+                    right = (self.mdpx + radius) * ratio
+                    up = (self.mdpy - radius) * ratio
+                    down = (self.mdpy + radius) * ratio
+                    draw.ellipse((left, up, right, down), fill=None, outline=color, width=line_thick_bold)
+
+            elif self.style == 9:  # Classic 1
+                mid_y = self.mdpy * ratio
+                y_scale = 0.85
+                low = mid_y + self.rad_max * ratio * hist[i] * y_scale
+                up = mid_y - self.rad_max * ratio * hist[i] * y_scale
+                gap = self.rad_max * ratio * 2 / (bins - 1)
+                x_offset = gap * i + self.mdpx * ratio - self.rad_max * ratio
+                line_points = [(x_offset, low), (x_offset, up)]
+                draw.line(line_points, width=line_thick, fill=color)
+                circle(draw, line_points[0], line_thick_slim, color)
+                circle(draw, line_points[1], line_thick_slim, color)
+
+            elif self.style == 10:  # Classic 2
+                mid_y = self.mdpy * ratio
+                y_scale = 0.85
+                low = mid_y + self.rad_max * ratio * y_scale
+                up = low - self.rad_max * ratio * hist[i] * y_scale * 2
+                gap = self.rad_max * ratio * 2 / (bins - 1)
+                x_offset = gap * i + self.mdpx * ratio - self.rad_max * ratio
+                line_points = [(x_offset, low), (x_offset, up)]
+                draw.line(line_points, width=line_thick, fill=color)
+                circle(draw, line_points[0], line_thick_slim, color)
+                circle(draw, line_points[1], line_thick_slim, color)
+
+            elif self.style == 11:
+                mid_y = self.mdpy * ratio
+                y_scale = 0.85
+                low = mid_y + self.rad_max * ratio * hist[i] * y_scale
+                gap = self.rad_max * ratio * 2 / (bins - 1)
+                x_offset = gap * i + self.mdpx * ratio - self.rad_max * ratio
+                p_gap = line_thick_bold * 2
+                p_size = line_thick_bold
+                p_n = int((low - mid_y + p_gap) / (p_gap + p_size))
+                if p_n < 1:
+                    p_n = 1
+                for ip in range(p_n):
+                    d_y = ip * (p_gap + p_size)
+                    circle(draw, (x_offset, mid_y + d_y), line_thick_bold, color)
+                    circle(draw, (x_offset, mid_y - d_y), line_thick_bold, color)
+
+            elif self.style == 12:
+                mid_y = self.mdpy * ratio
+                y_scale = 0.85
+                low = mid_y + self.rad_max * ratio * y_scale
+                up = low - self.rad_max * ratio * hist[i] * y_scale * 2
+                gap = self.rad_max * ratio * 2 / (bins - 1)
+                x_offset = gap * i + self.mdpx * ratio - self.rad_max * ratio
+                p_gap = line_thick_bold * 2
+                p_size = line_thick_bold
+                p_n = int((low - up + p_gap) / (p_gap + p_size))
+                if p_n < 1:
+                    p_n = 1
+                for ip in range(p_n):
+                    p_y = low - ip * (p_gap + p_size)
+                    circle(draw, (x_offset, p_y), line_thick_bold, color)
+
+            elif self.style == 13:
+                mid_y = self.mdpy * ratio
+                y_scale = 0.85
+                low = mid_y + self.rad_max * ratio * hist[i] * y_scale
+                gap = self.rad_max * ratio * 2 / (bins - 1)
+                x_offset = gap * i + self.mdpx * ratio - self.rad_max * ratio
+                p_gap = line_thick_bold * 2
+                p_size = line_thick_bold
+                p_n = int((low - mid_y + p_gap) / (p_gap + p_size))
+                if p_n < 1:
+                    p_n = 1
+                for ip in range(p_n):
+                    d_y = ip * (p_gap + p_size)
+                    rectangle(draw, (x_offset, mid_y + d_y), line_thick_bold, color)
+                    rectangle(draw, (x_offset, mid_y - d_y), line_thick_bold, color)
+
+            elif self.style == 14:
+                mid_y = self.mdpy * ratio
+                y_scale = 0.85
+                low = mid_y + self.rad_max * ratio * y_scale
+                up = low - self.rad_max * ratio * hist[i] * y_scale * 2
+                gap = self.rad_max * ratio * 2 / (bins - 1)
+                x_offset = gap * i + self.mdpx * ratio - self.rad_max * ratio
+                p_gap = line_thick_bold * 2
+                p_size = line_thick_bold
+                p_n = int((low - up + p_gap) / (p_gap + p_size))
+                if p_n < 1:
+                    p_n = 1
+                for ip in range(p_n):
+                    p_y = low - ip * (p_gap + p_size)
+                    rectangle(draw, (x_offset, p_y), line_thick_bold, color)
+
+            elif self.style == 15:
+                mid_y = self.mdpy * ratio
+                y_scale = 0.85
+                low = mid_y + self.rad_max * ratio * hist[i] * y_scale
+                up = mid_y - self.rad_max * ratio * hist[i] * y_scale
+                gap = self.rad_max * ratio * 2 / (bins - 1)
+                x_offset = gap * i + self.mdpx * ratio - self.rad_max * ratio
+                draw.rectangle((x_offset - line_thick_bold, low + line_thick_bold, x_offset + line_thick_bold,
+                                up - line_thick_bold), fill=color)
+
+            elif self.style == 16:
+                mid_y = self.mdpy * ratio
+                y_scale = 0.85
+                low = mid_y + self.rad_max * ratio * y_scale
+                up = low - self.rad_max * ratio * hist[i] * y_scale * 2
+                gap = self.rad_max * ratio * 2 / (bins - 1)
+                x_offset = gap * i + self.mdpx * ratio - self.rad_max * ratio
+                draw.rectangle((x_offset - line_thick_bold, low + line_thick_bold, x_offset + line_thick_bold,
+                                up - line_thick_bold), fill=color)
+
+            elif self.style == 17:
+                mid_y = self.mdpy * ratio
+                y_scale = 0.85
+                low = mid_y + self.rad_max * ratio * y_scale
+                up = low - self.rad_max * ratio * hist[i] * y_scale * 2
+                gap = self.rad_max * ratio * 2 / (bins - 1)
+                x_offset = gap * i + self.mdpx * ratio - self.rad_max * ratio
+                if line_graph_prev is None:
+                    line_graph_prev = [(x_offset, low), (x_offset, up)]
+                    draw.line(((x_offset, low), (x_offset, up)), width=line_thick, fill=color)
+                    circle(draw, (x_offset, low), line_thick_slim, color)
+                    circle(draw, (x_offset, up), line_thick_slim, color)
+
+                draw.line((line_graph_prev[1], (x_offset, up)), width=line_thick, fill=color)
+                circle(draw, line_graph_prev[1], line_thick_slim, color)
+                circle(draw, (x_offset, up), line_thick_slim, color)
+
+                if i >= bins - 1:
+                    draw.line(((x_offset, low), (x_offset, up)), width=line_thick, fill=color)
+                    circle(draw, (x_offset, low), line_thick_slim, color)
+                    circle(draw, (x_offset, up), line_thick_slim, color)
+                line_graph_prev = [(x_offset, low), (x_offset, up)]
+
+            elif self.style < 0:
+                pass
             else:
                 line_points = [self.getAxis(bins, i, self.rad_min, ratio),
                                self.getAxis(bins, i, self.rad_min + hist[i] * self.rad_div, ratio)]
-                draw.line(line_points, width=int(round(line_thick)), fill=color)
-                circle(draw, line_points[0], line_thick / 2, color)
-                circle(draw, line_points[1], line_thick / 2, color)
+                draw.line(line_points, width=line_thick, fill=color)
+                circle(draw, line_points[0], line_thick_slim, color)
+                circle(draw, line_points[1], line_thick_slim, color)
+
         if use_glow:
             canvas_blur = canvas.filter(ImageFilter.GaussianBlur(radius=self.blur / 2 * ratio))
             canvas = ImageChops.add(canvas, canvas_blur)
@@ -238,12 +400,18 @@ class AudioVisualizer:
         canvas = canvas.resize((self.width, self.height), Image.ANTIALIAS)
 
         output = self.background.copy()
+        output.paste(canvas, (0, 0), canvas)
         if rotate != 0 and fg_img is not None and bg_mode > -2 and (not bg_mode == 2):
             angle = -(rotate * frame_pt / fps / 60) * 360
-            rotate_img = fg_img.rotate(angle, resample=Image.BICUBIC)
+            mask = fg_img.split()[-1]
+            rotate_img = fg_img.convert("RGB").rotate(angle, resample=Image.BICUBIC)
+            rotate_img.putalpha(mask)
             output = pasteMiddle(rotate_img, output, glow=False, blur=0, bright=1)
 
-        output.paste(canvas, (0, 0), canvas)
+        if rotate == 0 and fg_img is not None and bg_mode > -2 and (not bg_mode == 2):
+            if self.style in [9, 10, 11, 12, 13, 14, 15, 16, 17]:
+                output = pasteMiddle(fg_img, output, glow=False, blur=0, bright=1)
+
         return output
 
     def getAxis(self, bins, index, radius, ratio):

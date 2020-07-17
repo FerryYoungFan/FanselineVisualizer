@@ -14,8 +14,9 @@ def cropToCenter(img):
 
 def cropCircle(img, size=None):
     img = cropToCenter(img)
+    pad_size = 2
     if size is not None:
-        img = img.resize((size, size), Image.ANTIALIAS)
+        img = img.resize((size + pad_size * 2, size + pad_size * 2), Image.ANTIALIAS)
     # Antialiasing Drawing
     width, height = img.size
     scale = 4
@@ -24,9 +25,9 @@ def cropCircle(img, size=None):
     draw = ImageDraw.Draw(mask)
     draw.ellipse((0, 0) + size_anti, fill=255)
     mask = mask.resize((size, size), Image.ANTIALIAS)
-    output = ImageOps.fit(img, mask.size, centering=(0.5, 0.5))
-    output.putalpha(mask)
-    return output
+    mask_pad = ImageOps.expand(mask, (pad_size, pad_size, pad_size, pad_size))
+    img.putalpha(mask_pad)
+    return img
 
 
 def resizeRatio(img, ratio):
@@ -104,12 +105,6 @@ def glowText(img, text=None, font_size=35, font_set=None, bright=1.0, blur=2, lo
     elif brt < 0:
         brt = 0
 
-    tcolor = int(round(((bright - 0.5) * 3 + 0.5) * 255))
-    if tcolor > 255:
-        tcolor = 255
-    elif tcolor < 0:
-        tcolor = 0
-
     width, height = img.size
     ratio = 2
     width = width * ratio
@@ -146,7 +141,7 @@ def glowText(img, text=None, font_size=35, font_set=None, bright=1.0, blur=2, lo
         except:
             canvas.paste(logo, (round((width - w) / 2), round(height - 2 * font_size)))
     if text:
-        draw.text(((width - w) / 2 + xoffset, height - 2 * font_size), text, fill=(tcolor, tcolor, tcolor, 255),
+        draw.text(((width - w) / 2 + xoffset, height - 2 * font_size), text, fill=(brt, brt, brt, 255),
                   font=_font)
     if use_glow:
         mask_blur = canvas.split()[-1]

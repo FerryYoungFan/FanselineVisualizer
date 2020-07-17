@@ -72,7 +72,8 @@ class InfoBridge:
                 label_fps, label_brv, label_range, label_to, label_hz, label_bins, label_scalar, label_color,
                 label_bra, label_kbps, label_preseta, label_presetv, list_lang, label_lang, label_smooth, list_smooth,
                 entry_bg, btn_bg, entry_relsize, check_use_glow, label_bright, entry_bright, label_bg_mode,
-                list_bg_mode, label_style, list_style, label_linewidth, entry_linewidth, entry_rotate, label_rotate]
+                list_bg_mode, label_style, list_style, label_linewidth, entry_linewidth, entry_rotate, label_rotate,
+                label_saturation, entry_saturation, label_text_brt, entry_text_brt]
         for el in elem:
             el["state"] = fg
 
@@ -91,11 +92,14 @@ class InfoBridge:
             frame2.imshow(img)
 
 
+img_format_dict = "*.jpg *.jpeg *.png *.gif *.bmp *.ico *.dib *.webp *.tiff *.tga"
+
+
 def selectImage():
     try:
         global tk_image_path
         pathread = askopenfilename(
-            filetypes=[(lang["Image files"], "*.jpg *.jpeg *.png *.gif *.bmp *.ico"), (lang["All files"], "*.*")])
+            filetypes=[(lang["Image files"], img_format_dict), (lang["All files"], "*.*")])
         if not pathread or not os.path.exists(pathread):
             return
         else:
@@ -112,7 +116,7 @@ def selectLogo():
     try:
         global tk_logo_path
         pathread = askopenfilename(
-            filetypes=[(lang["Image files"], "*.jpg *.jpeg *.png *.gif *.bmp *.ico"), (lang["All files"], "*.*")])
+            filetypes=[(lang["Image files"], img_format_dict), (lang["All files"], "*.*")])
         if not pathread or not os.path.exists(pathread):
             return
         else:
@@ -129,7 +133,7 @@ def selectBG():
     try:
         global tk_bg_path
         pathread = askopenfilename(
-            filetypes=[(lang["Image files"], "*.jpg *.jpeg *.png *.gif *.bmp *.ico"), (lang["All files"], "*.*")])
+            filetypes=[(lang["Image files"], img_format_dict), (lang["All files"], "*.*")])
         if not pathread or not os.path.exists(pathread):
             return
         else:
@@ -146,7 +150,9 @@ def selectAudio():
     try:
         global tk_sound_path, tk_output_path, tk_filename
         pathread = askopenfilename(
-            filetypes=[(lang["Audio files"], "*.mp3 *.wav *.ogg *.aac *.flac *.m4a"), (lang["All files"], "*.*")])
+            filetypes=[(lang["Audio files"], "*.mp3 *.wav *.ogg *.aac *.flac *.ape *.m4a *.m4r *.wma *.mp2 *.mmf"),
+                       (lang["Video files"], "*.mp4 *.wmv *.avi *.flv *.mov *.mkv *.rm *.rmvb"),
+                       (lang["All files"], "*.*")])
         if not pathread or not os.path.exists(pathread):
             return
         else:
@@ -202,7 +208,7 @@ def getAllValues():
         tk_text, tk_font, tk_bins, tk_fq_low, tk_fq_high, color_dic, list_color, tk_scalar, \
         tk_width, tk_height, tk_fps, tk_br_video, tk_br_audio, tk_audio_normal, tk_smooth, \
         tk_bg_path, tk_bright, tk_blur_bg, tk_use_glow, tk_relsize, tk_bg_mode, bg_mode_dic, \
-        tk_style, tk_linewidth, style_dic, tk_rotate
+        tk_style, tk_linewidth, style_dic, tk_rotate, tk_saturation, tk_text_brt
 
     def checkStr(strtk):
         if strtk.get():
@@ -226,7 +232,6 @@ def getAllValues():
         else:
             return int(round(num))
 
-
     def checkFloat(floattk):
         try:
             num = float(floattk.get())
@@ -249,6 +254,7 @@ def getAllValues():
         "filename": fname,
         "text": checkStr(tk_text),
         "font": checkStr(tk_font),
+        "text_brt": checkFloat(tk_text_brt),
 
         "bins": checkInt(tk_bins),
         "lower": checkInt(tk_fq_low),
@@ -257,6 +263,7 @@ def getAllValues():
         "scalar": checkFloat(tk_scalar),
         "smooth": checkInt(tk_smooth),
         "bright": checkFloat(tk_bright),
+        "saturation": checkFloat(tk_saturation),
 
         "blur_bg": bg_mode_dic[checkStr(tk_bg_mode)][0],
         "bg_mode": bg_mode_dic[checkStr(tk_bg_mode)][1],
@@ -303,9 +310,10 @@ def setBlender(param_dict):
                    logo_path=param_dict["logo_path"])
     fb.setOutputPath(output_path=param_dict["output_path"],
                      filename=param_dict["filename"])
-    fb.setText(text=param_dict["text"], font=param_dict["font"], relsize=param_dict["relsize"])
+    fb.setText(text=param_dict["text"], font=param_dict["font"],
+               relsize=param_dict["relsize"], text_brt=param_dict["text_brt"])
     fb.setSpec(bins=param_dict["bins"], lower=param_dict["lower"], upper=param_dict["upper"],
-               color=param_dict["color"], bright=param_dict["bright"],
+               color=param_dict["color"], bright=param_dict["bright"], saturation=param_dict["saturation"],
                scalar=param_dict["scalar"], smooth=param_dict["smooth"],
                style=param_dict["style"], linewidth=param_dict["linewidth"])
     fb.setVideoInfo(width=param_dict["width"], height=param_dict["height"],
@@ -436,7 +444,7 @@ def loadConfig():
         tk_text, tk_font, tk_bins, tk_fq_low, tk_fq_high, color_dic, list_color, tk_scalar, \
         tk_width, tk_height, tk_fps, tk_br_video, tk_br_audio, tk_audio_normal, tk_smooth, \
         tk_bg_path, tk_bright, tk_blur_bg, tk_use_glow, tk_relsize, tk_bg_mode, label_mp4, \
-        style_dic
+        style_dic, tk_saturation, tk_text_brt
 
     def fileCheck(dicv, tk_value):
         try:
@@ -490,10 +498,12 @@ def loadConfig():
     numCheck("br_kbps", tk_br_audio)
     numCheck("normal", tk_audio_normal)
     numCheck("bright", tk_bright)
+    numCheck("saturation", tk_saturation)
     numCheck("blur_bg", tk_blur_bg)
     numCheck("use_glow", tk_use_glow)
     numCheck("smooth", tk_smooth)
     numCheck("relsize", tk_relsize)
+    numCheck("text_brt", tk_text_brt)
     numCheck("linewidth", tk_linewidth)
     numCheck("rotate", tk_rotate)
 
@@ -605,8 +615,8 @@ def bindPreview(tk_obj):
 
 if __name__ == '__main__':
     exit_flag = False
-    GUI_WIDTH = 1024
-    GUI_HEIGHT = 720
+    GUI_WIDTH = 950
+    GUI_HEIGHT = 700
     while not exit_flag:
         exit_flag = True
 
@@ -625,6 +635,8 @@ if __name__ == '__main__':
         tk_font = tk.StringVar(value="./Source/font.otf")
         tk_relsize = tk.DoubleVar(value=1.0)
         bindPreview(tk_relsize)
+        tk_text_brt = tk.DoubleVar(value=1.0)
+        bindPreview(tk_text_brt)
 
         tk_bins = tk.IntVar(value=80)
         bindPreview(tk_bins)
@@ -636,6 +648,8 @@ if __name__ == '__main__':
         bindPreview(tk_color)
         tk_bright = tk.DoubleVar(value=0.8)
         bindPreview(tk_bright)
+        tk_saturation = tk.DoubleVar(value=0.8)
+        bindPreview(tk_saturation)
         tk_smooth = tk.IntVar()
         tk_linewidth = tk.DoubleVar(value=1.0)
         bindPreview(tk_linewidth)
@@ -674,11 +688,12 @@ if __name__ == '__main__':
         frame1.place(relx=0, rely=0, relwidth=1, relheight=1, anchor='nw')
 
         root_view = tk.Toplevel(root)
+        root_view.title(lang["Preview"])
         root_view.withdraw()
-        canvas = tk.Canvas(root_view, width=GUI_WIDTH//2, height=GUI_HEIGHT//2)
+        canvas = tk.Canvas(root_view, width=GUI_WIDTH // 2, height=GUI_HEIGHT // 2)
         canvas.pack()
         frame2 = ImageViewer(root_view)
-        frame2.setGUI(GUI_WIDTH * 2 / 3, GUI_HEIGHT * 2 / 3)
+        frame2.setGUI(GUI_WIDTH * 2 / 3, GUI_HEIGHT)
         frame2.setLanguage(lang)
 
         rely, devy = 0.01, 0.06
@@ -696,46 +711,49 @@ if __name__ == '__main__':
         list_lang.bind("<<ComboboxSelected>>", resetGUI)
 
         label_preseta = tk.Label(master=frame1, textvariable=tk.StringVar(value=lang["Audio Preset:"]), anchor="e")
-        label_preseta.place(relwidth=0.1, relheight=relh, relx=0.33, rely=rely, anchor='nw')
+        label_preseta.place(relwidth=0.1, relheight=relh, relx=0.25, rely=rely, anchor='nw')
         list_preseta = ttk.Combobox(master=frame1, textvariable=tk_preseta, state="readonly")
         audio_dic = {
-            lang["Music-HQ"] + " (320 kbps)": [320, 20, 2500, False, 1.0, 2],
-            lang["Music-MQ"] + " (128 kbps)": [128, 20, 2500, False, 1.0, 2],
-            lang["Music-LQ"] + " (48 kbps)": [48, 20, 2500, False, 1.0, 2],
-            lang["Voice-HQ"] + " (320 kbps)": [320, 20, 2500, True, 1.0, 5],
-            lang["Voice-MQ"] + " (128 kbps)": [128, 40, 2200, True, 1.0, 5],
-            lang["Voice-LQ"] + " (48 kbps)": [48, 80, 2000, True, 1.0, 5],
+            lang["Music-HQ"] + " (320k)": [320, 20, 2500, False, 1.0, 2],
+            lang["Music-MQ"] + " (128k)": [128, 20, 2500, False, 1.0, 2],
+            lang["Music-LQ"] + " (48k)": [48, 20, 2500, False, 1.0, 2],
+            lang["Voice-HQ"] + " (320k)": [320, 20, 2500, True, 1.0, 5],
+            lang["Voice-MQ"] + " (128k)": [128, 40, 2200, True, 1.0, 5],
+            lang["Voice-LQ"] + " (48k)": [48, 80, 2000, True, 1.0, 5],
         }
         list_preseta["values"] = dict2tuple(audio_dic)
         list_preseta.current(0)
         list_preseta.bind("<<ComboboxSelected>>", presetAudio)
         presetAudio()
         list_preseta.set(lang["-Please Select-"])
-        list_preseta.place(relwidth=0.2, relheight=relh, relx=0.43, rely=rely, anchor='nw')
+        list_preseta.place(relwidth=0.14, relheight=relh, relx=0.35, rely=rely, anchor='nw')
 
         label_presetv = tk.Label(master=frame1, textvariable=tk.StringVar(value=lang["Video Preset:"]), anchor="e")
-        label_presetv.place(relwidth=0.1, relheight=relh, relx=0.65, rely=rely, anchor='nw')
+        label_presetv.place(relwidth=0.1, relheight=relh, relx=0.5, rely=rely, anchor='nw')
         list_presetv = ttk.Combobox(master=frame1, textvariable=tk_presetv, state="readonly")
         video_dic = {
-            lang["Square"] + " (720x720:30)": [720, 720, 30, getDefaultBR(720, 720, 30, 4)],
-            lang["Square"] + " (1080x1080:30)": [1080, 1080, 30, getDefaultBR(1080, 1080, 30, 5)],
-            lang["Square"] + " (1024x1024:30)": [1024, 1024, 30, getDefaultBR(1024, 1024, 30, 5)],
-            lang["Square"] + " (512x512:30)": [512, 512, 30, getDefaultBR(512, 512, 30, 4)],
-            lang["Square"] + " (480x480:30)": [480, 480, 30, getDefaultBR(480, 480, 30, 4)],
-            "1080p (1920x1080:30)": [1920, 1080, 30, getDefaultBR(1920, 1080, 30, 5)],
-            "720p (1280x720:30)": [1280, 720, 30, getDefaultBR(1280, 720, 30, 4)],
-            "480p (854x480:30)": [854, 480, 30, getDefaultBR(854, 480, 30, 4)],
-            lang["Portrait"] + " (1080x1920:30)": [1080, 1920, 30, getDefaultBR(1920, 1080, 30, 5)],
-            lang["Portrait"] + " (720x1280:30)": [720, 1280, 30, getDefaultBR(1280, 720, 30, 4)],
-            lang["Portrait"] + " (480x854:30)": [480, 854, 30, getDefaultBR(854, 480, 30, 4)],
-            "2k " + lang["(Slow)"] + " (2560x1440:30)": [2560, 1440, 30, getDefaultBR(2560, 1440, 30, 5)],
+            lang["Square"] + " (1080x1080)": [1080, 1080, 30, getDefaultBR(1080, 1080, 30, 5)],
+            lang["Square"] + " (1024x1024)": [1024, 1024, 30, getDefaultBR(1024, 1024, 30, 5)],
+            lang["Square"] + " (720x720)": [720, 720, 30, getDefaultBR(720, 720, 30, 4)],
+            lang["Square"] + " (512x512)": [512, 512, 30, getDefaultBR(512, 512, 30, 4)],
+            lang["Square"] + " (480x480)": [480, 480, 30, getDefaultBR(480, 480, 30, 4)],
+            lang["Landscape"] + " (1920x1080)": [1920, 1080, 30, getDefaultBR(1920, 1080, 30, 5)],
+            lang["Landscape"] + " (1280x720)": [1280, 720, 30, getDefaultBR(1280, 720, 30, 4)],
+            lang["Landscape"] + " (854x480)": [854, 480, 30, getDefaultBR(854, 480, 30, 4)],
+            lang["Portrait"] + " (1080x1920)": [1080, 1920, 30, getDefaultBR(1920, 1080, 30, 5)],
+            lang["Portrait"] + " (720x1280)": [720, 1280, 30, getDefaultBR(1280, 720, 30, 4)],
+            lang["Portrait"] + " (480x854)": [480, 854, 30, getDefaultBR(854, 480, 30, 4)],
+            "2k (2560x1440)": [2560, 1440, 30, getDefaultBR(2560, 1440, 30, 5)],
         }
         list_presetv["values"] = dict2tuple(video_dic)
-        list_presetv.current(0)
+        list_presetv.current(4)
         list_presetv.bind("<<ComboboxSelected>>", presetVideo)
         presetVideo()
         list_presetv.set(lang["-Please Select-"])
-        list_presetv.place(relwidth=0.2, relheight=relh, relx=0.75, rely=rely, anchor='nw')
+        list_presetv.place(relwidth=0.19, relheight=relh, relx=0.6, rely=rely, anchor='nw')
+
+        btn_prev = tk.Button(master=frame1, text=lang["Preview"], command=showPreview)
+        btn_prev.place(relwidth=0.15, relheight=relh, relx=0.8, rely=rely, anchor='nw')
 
         rely += devy
         entry_audio = tk.Entry(master=frame1, textvariable=tk_sound_path)
@@ -764,13 +782,20 @@ if __name__ == '__main__':
         label_textplz = tk.Label(master=frame1, textvariable=tk.StringVar(value=lang["Your Text:"]), anchor="e")
         label_textplz.place(relwidth=0.1, relheight=relh, relx=0.05, rely=rely, anchor='nw')
         entry_text = tk.Entry(master=frame1, textvariable=tk_text)
-        entry_text.place(relwidth=0.35, relheight=relh, relx=0.15, rely=rely, anchor='nw')
+        entry_text.place(relwidth=0.18, relheight=relh, relx=0.15, rely=rely, anchor='nw')
         entry_text.bind("<FocusOut>", fastPreview)
         entry_text.bind('<Return>', fastPreview)
         tk_text.set("Hello World!")
 
+        label_text_brt = tk.Label(master=frame1, textvariable=tk.StringVar(value=lang["Text Brt.:"]), anchor="e")
+        label_text_brt.place(relwidth=0.1, relheight=relh, relx=0.35, rely=rely, anchor='nw')
+        entry_text_brt = ttk.Combobox(master=frame1, textvariable=tk_text_brt)
+        entry_text_brt["values"] = (1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0.0)
+        entry_text_brt.current(0)
+        entry_text_brt.place(relwidth=0.05, relheight=relh, relx=0.45, rely=rely, anchor='nw')
+
         label_font = tk.Label(master=frame1, textvariable=tk.StringVar(value=lang["Font Size:"]), anchor="e")
-        label_font.place(relwidth=0.1, relheight=relh, relx=0.49, rely=rely, anchor='nw')
+        label_font.place(relwidth=0.08, relheight=relh, relx=0.51, rely=rely, anchor='nw')
 
         entry_relsize = ttk.Combobox(master=frame1, textvariable=tk_relsize)
         entry_relsize["values"] = (3.0, 2.8, 2.5, 2.2, 2.0, 1.8, 1.5, 1.2, 1.0, 0.8, 0.5)
@@ -818,7 +843,7 @@ if __name__ == '__main__':
         label_bra.place(relwidth=0.1, relheight=relh, relx=0.05, rely=rely, anchor='nw')
         list_bra = ttk.Combobox(master=frame1, textvariable=tk_br_audio)
         list_bra["values"] = (320, 256, 192, 128, 96, 64, 48)
-        list_bra.current(2)
+        list_bra.current(0)
         list_bra.place(relwidth=0.08, relheight=relh, relx=0.15, rely=rely, anchor='nw')
         label_kbps = tk.Label(master=frame1, textvariable=tk.StringVar(value="Kbps"), anchor="w")
         label_kbps.place(relwidth=0.05, relheight=relh, relx=0.23, rely=rely, anchor='nw')
@@ -859,8 +884,8 @@ if __name__ == '__main__':
         label_bins = tk.Label(master=frame1, textvariable=tk.StringVar(value=lang["Spectrum Num:"]), anchor="e")
         label_bins.place(relwidth=0.1, relheight=relh, relx=0.35, rely=rely, anchor='nw')
         entry_bins = ttk.Combobox(master=frame1, textvariable=tk_bins)
-        entry_bins["values"] = (12, 24, 36, 48, 60, 80, 100, 120)
-        entry_bins.current(3)
+        entry_bins["values"] = (6, 12, 18, 24, 36, 48, 60, 72, 84, 96, 108, 120)
+        entry_bins.current(5)
         entry_bins.place(relwidth=0.05, relheight=relh, relx=0.45, rely=rely, anchor='nw')
 
         label_scalar = tk.Label(master=frame1, textvariable=tk.StringVar(value=lang["Spectrum Scalar:"]), anchor="e")
@@ -870,51 +895,10 @@ if __name__ == '__main__':
         entry_scalar.current(5)
         entry_scalar.place(relwidth=0.05, relheight=relh, relx=0.65, rely=rely, anchor='nw')
 
-        label_bright = tk.Label(master=frame1, textvariable=tk.StringVar(value=lang["Brightness:"]), anchor="e")
-        label_bright.place(relwidth=0.1, relheight=relh, relx=0.7, rely=rely, anchor='nw')
-        entry_bright = ttk.Combobox(master=frame1, textvariable=tk_bright)
-        entry_bright["values"] = (1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0.0)
-        entry_bright.current(4)
-        entry_bright.place(relwidth=0.15, relheight=relh, relx=0.8, rely=rely, anchor='nw')
-
-        rely += devy
-
-        label_style = tk.Label(master=frame1, textvariable=tk.StringVar(value=lang["Spectrum Style:"]), anchor="e")
-        label_style.place(relwidth=0.1, relheight=relh, relx=0.05, rely=rely, anchor='nw')
-        list_style = ttk.Combobox(master=frame1, textvariable=tk_style)
-
-        style_dic = {
-            lang["Solid Line"]: 0,
-            lang["Dot Line"]: 1,
-            lang["Single Dot"]: 2,
-            lang["Double Dot"]: 7,
-            lang["Stem Plot1"]: 3,
-            lang["Stem Plot2"]: 4,
-            lang["Stem Plot3"]: 5,
-            lang["Stem Plot4"]: 6,
-        }
-        list_style["values"] = dict2tuple(style_dic)
-        list_style["state"] = "readonly"
-        list_style.current(0)
-        list_style.place(relwidth=0.13, relheight=relh, relx=0.15, rely=rely, anchor='nw')
-
-        label_linewidth = tk.Label(master=frame1, textvariable=tk.StringVar(value=lang["Line Width:"]), anchor="e")
-        label_linewidth.place(relwidth=0.1, relheight=relh, relx=0.35, rely=rely, anchor='nw')
-        entry_linewidth = ttk.Combobox(master=frame1, textvariable=tk_linewidth)
-        entry_linewidth["values"] = (15.0, 10.0, 8.0, 4.0, 3.0, 2.0, 1.5, 1.0, 0.5)
-        entry_linewidth.current(7)
-        entry_linewidth.place(relwidth=0.05, relheight=relh, relx=0.45, rely=rely, anchor='nw')
-
-        label_smooth = tk.Label(master=frame1, textvariable=tk.StringVar(value=lang["Spectrum Stabilize:"]), anchor="e")
-        label_smooth.place(relwidth=0.15, relheight=relh, relx=0.50, rely=rely, anchor='nw')
-        list_smooth = ttk.Combobox(master=frame1, textvariable=tk_smooth)
-        list_smooth["values"] = (0, 1, 2, 3, 5, 6, 7, 8, 9, 10)
-        list_smooth.current(0)
-        list_smooth.place(relwidth=0.05, relheight=relh, relx=0.65, rely=rely, anchor='nw')
-
-        label_color = tk.Label(master=frame1, textvariable=tk.StringVar(value=lang["Spec. Color:"]), anchor="e")
+        label_color = tk.Label(master=frame1, textvariable=tk.StringVar(value=lang["Spec. Hue:"]), anchor="e")
         label_color.place(relwidth=0.1, relheight=relh, relx=0.7, rely=rely, anchor='nw')
         list_color = ttk.Combobox(master=frame1, textvariable=tk_color, state="readonly")
+
         color_dic = {
             lang["Rainbow 4x"]: "color4x",
             lang["Rainbow 2x"]: "color2x",
@@ -942,19 +926,77 @@ if __name__ == '__main__':
         list_color.place(relwidth=0.15, relheight=relh, relx=0.8, rely=rely, anchor='nw')
 
         rely += devy
+
+        label_style = tk.Label(master=frame1, textvariable=tk.StringVar(value=lang["Spectrum Style:"]), anchor="e")
+        label_style.place(relwidth=0.1, relheight=relh, relx=0.05, rely=rely, anchor='nw')
+        list_style = ttk.Combobox(master=frame1, textvariable=tk_style)
+
+        style_dic = {
+            lang["Solid Line"]: 0,
+            lang["Dot Line"]: 1,
+            lang["Single Dot"]: 2,
+            lang["Double Dot"]: 7,
+            lang["Concentric"]: 8,
+            lang["Line Graph"]: 17,
+            lang["Classic 1"]: 9,
+            lang["Classic 2"]: 10,
+            lang["Classic 3"]: 15,
+            lang["Classic 4"]: 16,
+            lang["Classic Dot 1"]: 11,
+            lang["Classic Dot 2"]: 12,
+            lang["Classic Dot 3"]: 13,
+            lang["Classic Dot 4"]: 14,
+            lang["Stem Plot 1"]: 3,
+            lang["Stem Plot 2"]: 4,
+            lang["Stem Plot 3"]: 5,
+            lang["Stem Plot 4"]: 6,
+            lang["No Spectrum"]: -1,
+        }
+        list_style["values"] = dict2tuple(style_dic)
+        list_style["state"] = "readonly"
+        list_style.current(0)
+        list_style.place(relwidth=0.13, relheight=relh, relx=0.15, rely=rely, anchor='nw')
+
+        label_linewidth = tk.Label(master=frame1, textvariable=tk.StringVar(value=lang["Line Width:"]), anchor="e")
+        label_linewidth.place(relwidth=0.1, relheight=relh, relx=0.35, rely=rely, anchor='nw')
+        entry_linewidth = ttk.Combobox(master=frame1, textvariable=tk_linewidth)
+        entry_linewidth["values"] = (
+            15.0, 12.0, 10.0, 8.0, 6.0, 5.0, 4.0, 3.0, 2.0, 1.5, 1.2, 1.0, 0.8, 0.6, 0.5, 0.4, 0.3)
+        entry_linewidth.current(11)
+        entry_linewidth.place(relwidth=0.05, relheight=relh, relx=0.45, rely=rely, anchor='nw')
+
+        label_smooth = tk.Label(master=frame1, textvariable=tk.StringVar(value=lang["Spectrum Stabilize:"]), anchor="e")
+        label_smooth.place(relwidth=0.15, relheight=relh, relx=0.50, rely=rely, anchor='nw')
+        list_smooth = ttk.Combobox(master=frame1, textvariable=tk_smooth)
+        list_smooth["values"] = (0, 1, 2, 3, 5, 6, 7, 8, 9, 10)
+        list_smooth.current(0)
+        list_smooth.place(relwidth=0.05, relheight=relh, relx=0.65, rely=rely, anchor='nw')
+
+        label_saturation = tk.Label(master=frame1, textvariable=tk.StringVar(value=lang["Spec. Sat.:"]), anchor="e")
+        label_saturation.place(relwidth=0.1, relheight=relh, relx=0.7, rely=rely, anchor='nw')
+        entry_saturation = ttk.Combobox(master=frame1, textvariable=tk_saturation)
+        entry_saturation["values"] = (1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0.0)
+        entry_saturation.current(4)
+        entry_saturation.place(relwidth=0.15, relheight=relh, relx=0.8, rely=rely, anchor='nw')
+
+        rely += devy
         label_rotate = tk.Label(master=frame1, textvariable=tk.StringVar(value=lang["Spin FG(rpm):"]), anchor="e")
         label_rotate.place(relwidth=0.15, relheight=relh, relx=0.3, rely=rely, anchor='nw')
         entry_rotate = ttk.Combobox(master=frame1, textvariable=tk_rotate)
-        entry_rotate["values"] = (0.0, 1.0, 2.0, 4.0, -1.0, -2.0, -4.0)
-        entry_rotate.current(0)
+        entry_rotate["values"] = (6.0, 5.0, 4.0, 3.0, 2.0, 1.0, 0.0, - 1.0, -2.0, -3.0, -4.0, -5.0, -6.0)
+        entry_rotate.current(6)
         entry_rotate.place(relwidth=0.05, relheight=relh, relx=0.45, rely=rely, anchor='nw')
 
         check_use_glow = tk.Checkbutton(master=frame1, text=lang["Glow Effect (SLOW)"],
                                         variable=tk_use_glow, onvalue=True, offvalue=False, anchor="e")
         check_use_glow.place(relwidth=0.15, relheight=relh, relx=0.55, rely=rely, anchor='nw')
 
-        btn_prev = tk.Button(master=frame1, text=lang["Preview"], command=showPreview)
-        btn_prev.place(relwidth=0.15, relheight=relh, relx=0.8, rely=rely, anchor='nw')
+        label_bright = tk.Label(master=frame1, textvariable=tk.StringVar(value=lang["Spec. Brt.:"]), anchor="e")
+        label_bright.place(relwidth=0.1, relheight=relh, relx=0.7, rely=rely, anchor='nw')
+        entry_bright = ttk.Combobox(master=frame1, textvariable=tk_bright)
+        entry_bright["values"] = (1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0.0)
+        entry_bright.current(4)
+        entry_bright.place(relwidth=0.15, relheight=relh, relx=0.8, rely=rely, anchor='nw')
 
         rely += devy
         scr = scrolledtext.ScrolledText(master=frame1, width=20, height=10)
@@ -1006,4 +1048,5 @@ if __name__ == '__main__':
         root.protocol("WM_DELETE_WINDOW", disable_event)
         root_view.protocol("WM_DELETE_WINDOW", close_view)
         frame1.tkraise()
+        showPreview()
         root.mainloop()

@@ -16,11 +16,11 @@ if __name__ == '__main__':
                    logo_path=r"./Source/logo.png")  # Set File Path
     fb.setOutputPath(output_path=r"./Output",
                      filename="test.mp4")  # Set Output Path
-    fb.setText(text="Your Text Here", font="./Source/font.otf", relsize=1.0)
+    fb.setText(text="Your Text Here", font="./Source/font.otf", relsize=1.0, text_brt=0.8)
     # Set Text at the Bottom (Relative Font Size: 0.3 - 3.1)
 
     fb.setSpec(bins=60, lower=20, upper=1500,
-               color=fb.color_dic["Gradient: Green - Blue"], bright=0.6,
+               color=fb.color_dic["Gradient: Green - Blue"], bright=0.6, saturation=0.8,
                scalar=1.0, smooth=2,
                style=1, linewidth=1.0)
     """
@@ -30,9 +30,10 @@ if __name__ == '__main__':
     upper: Upper Frequency
     color: Color of Spectrum
     bright: Brightness of Spectrum
+    saturation: Color Saturation of Spectrum
     scalar: Sensitivity (Scalar) of Analyzer (Default:1.0)
     smooth: Stabilize Spectrum (Range: 0 - 10)
-    style: 0-7 for Different Spectrum Styles
+    style: 0-17 for Different Spectrum Styles (-1 for None)
     linewidth: Relative Width of Spectrum Line (0.5-20)
     """
     fb.setVideoInfo(width=480, height=480, fps=30.0, br_Mbps=1.0,

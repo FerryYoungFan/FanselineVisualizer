@@ -21,7 +21,7 @@ def toTempWaveFile(file_in, file_out):
 
 
 def combineVideo(video, audio, file_out, audio_quality="320k", normal=False):
-    cmd1 = '-i \"{0}\" -itsoffset 0.2 -i \"{1}\" '.format(video, audio)
+    cmd1 = '-i \"{0}\" -itsoffset 0.0 -i \"{1}\" '.format(video, audio)
     if not normal:
         cmd2 = '-map 0 -c:v copy -map 1 -b:a {0} -c:a aac -y \"{1}\"'.format(audio_quality, file_out)
     else:
