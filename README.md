@@ -5,6 +5,7 @@
  See How to use:  
  查看如何使用：  
 https://www.youtube.com/watch?v=ziSsiIvTB_o  
+https://www.bilibili.com/video/BV1AD4y1D7fd  
  <br/>
 ![Image](https://github.com/FerryYoungFan/FanselineVisualizer/blob/master/Images/Preview.gif)
 ![Image](https://github.com/FerryYoungFan/FanselineVisualizer/blob/master/Images/preview1.png)
