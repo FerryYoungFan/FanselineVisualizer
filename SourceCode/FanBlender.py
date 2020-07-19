@@ -1,3 +1,10 @@
+"""
+Audio Visualizer
+By Twitter @FanKetchup
+https://github.com/FerryYoungFan/FanselineVisualizer
+"""
+__version__ = "1.0.8"
+
 try:
     from _CheckEnvironment import checkEnvironment
 
@@ -14,14 +21,6 @@ import imageio_ffmpeg
 import numpy as np
 
 import threading, time, os
-
-__version__ = "1.0.7"
-
-"""
-Audio Visualizer
-By Twitter @FanKetchup
-https://github.com/FerryYoungFan/FanselineVisualizer
-"""
 
 
 class blendingThread(threading.Thread):
@@ -139,7 +138,10 @@ class FanBlender:
         self._temp_video_path = r"./Temp/temp.mp4"
         self.ensure_dir(self._temp_audio_path)
 
-        self._ffmpeg_path = imageio_ffmpeg.get_ffmpeg_exe()
+        try:
+            self._ffmpeg_path = imageio_ffmpeg.get_ffmpeg_exe()
+        except:
+            self._ffmpeg_path = None
 
         self._frame_size = min(self.frame_width, self.frame_height)
         self._relsize = 1.0
@@ -175,6 +177,19 @@ class FanBlender:
 
         self.bg_mode = 0
         self.bg_blended = False
+        self.ffmpegCheck()
+
+    def ffmpegCheck(self):
+        if self._ffmpeg_path is None:
+            self.log("Error: FFMPEG not found!")
+            if self._console:
+                try:
+                    self._console.ffmpegWarning()
+                except:
+                    pass
+            return False
+        else:
+            return True
 
     def setAmplify(self):
         return self.scalar * 7 * np.sqrt(self.bins / 80) * np.power(1500 / (self.fq_up - self.fq_low), 0.5)
@@ -448,6 +463,8 @@ class FanBlender:
                 return
 
     def genAnalyzer(self):
+        if not self.ffmpegCheck():
+            return
         if self.sound_path is None or not os.path.exists(str(self.sound_path)):
             self.log("Error: Audio file not found!")
             return
@@ -470,8 +487,12 @@ class FanBlender:
         self.removeTemp()
         self.freezeConsole(True)
         self.genBackground()
+        if not self.ffmpegCheck():
+            self.freezeConsole(False)
+            return
         self.genAnalyzer()
         if self._temp_audio_path is None or not os.path.exists(str(self._temp_audio_path)):
+            self.freezeConsole(False)
             return
 
         self.isRunning = True

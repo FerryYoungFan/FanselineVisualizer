@@ -58,13 +58,13 @@ class InfoBridge:
             self.progressbar(0, 100)
             btn_blend["text"] = lang["Stop Blending"]
             isRunning = True
-            root.title(lang["Fanseline Audio Visualizer"] + " -V." + __version__ + " " + lang["(Running)"])
+            root.title(lang["Fanseline Audio Visualizer"] + " - V." + __version__ + " " + lang["(Running)"])
         else:
             fg = "normal"
             self.progressbar(0, 100)
             btn_blend["text"] = lang["Blend & Export"]
             isRunning = False
-            root.title(lang["Fanseline Audio Visualizer"] + " -V." + __version__)
+            root.title(lang["Fanseline Audio Visualizer"] + " - V." + __version__)
         elem = [entry_audio, btn_audio, entry_fname, btn_output, entry_img, btn_img, entry_logo, btn_logo,
                 entry_text, entry_font, btn_font, entry_width, entry_height, entry_fps, entry_brv, btn_autob,
                 entry_low, entry_up, entry_bins, entry_scalar, list_color, list_bra, check_normal, list_preseta,
@@ -90,6 +90,9 @@ class InfoBridge:
         global frame2
         if frame2.winfo_viewable():
             frame2.imshow(img)
+
+    def ffmpegWarning(self):
+        tkinter.messagebox.showinfo(lang["Notice"], lang["FFMPEG not found, please install FFMPEG!"])
 
 
 img_format_dict = "*.jpg *.jpeg *.png *.gif *.bmp *.ico *.dib *.webp *.tiff *.tga"
@@ -361,6 +364,16 @@ def showPreview():
             root_view.deiconify()
 
 
+def legalFileName(fname=""):
+    if not fname:
+        return False
+    illegal_dict = ["/", "\\", ":", "*", "?", "\"", "<", ">", "|"]
+    for char in illegal_dict:
+        if char in fname:
+            return False
+    return True
+
+
 def startBlending():
     global fb
     vdic = getAllValues()
@@ -370,7 +383,7 @@ def startBlending():
     if vdic["output_path"] is None:
         tkinter.messagebox.showinfo(lang["Cannot Blend"], lang["Please select the correct output path!"])
         return
-    if vdic["filename"] is None:
+    if not legalFileName(vdic["filename"]):
         tkinter.messagebox.showinfo(lang["Cannot Blend"], lang["Please input the corrent file name!"])
         return
 
@@ -680,7 +693,7 @@ if __name__ == '__main__':
 
         fb = FanBlender()
 
-        root.title(lang["Fanseline Audio Visualizer"] + " -V." + __version__)
+        root.title(lang["Fanseline Audio Visualizer"] + " - V." + __version__)
         root.bind('<Key>', shortCut)
         canvas = tk.Canvas(root, width=GUI_WIDTH, height=GUI_HEIGHT)
         canvas.pack()
@@ -779,7 +792,7 @@ if __name__ == '__main__':
         btn_logo.place(relwidth=0.15, relheight=relh, relx=0.8, rely=rely, anchor='nw')
 
         rely += devy
-        label_textplz = tk.Label(master=frame1, textvariable=tk.StringVar(value=lang["Your Text:"]), anchor="e")
+        label_textplz = tk.Label(master=frame1, text=lang["Your Text:"], anchor="e")
         label_textplz.place(relwidth=0.1, relheight=relh, relx=0.05, rely=rely, anchor='nw')
         entry_text = tk.Entry(master=frame1, textvariable=tk_text)
         entry_text.place(relwidth=0.18, relheight=relh, relx=0.15, rely=rely, anchor='nw')
@@ -787,14 +800,14 @@ if __name__ == '__main__':
         entry_text.bind('<Return>', fastPreview)
         tk_text.set("Hello World!")
 
-        label_text_brt = tk.Label(master=frame1, textvariable=tk.StringVar(value=lang["Text Brt.:"]), anchor="e")
+        label_text_brt = tk.Label(master=frame1, text=lang["Text Brt.:"], anchor="e")
         label_text_brt.place(relwidth=0.1, relheight=relh, relx=0.35, rely=rely, anchor='nw')
         entry_text_brt = ttk.Combobox(master=frame1, textvariable=tk_text_brt)
         entry_text_brt["values"] = (1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0.0)
         entry_text_brt.current(0)
         entry_text_brt.place(relwidth=0.05, relheight=relh, relx=0.45, rely=rely, anchor='nw')
 
-        label_font = tk.Label(master=frame1, textvariable=tk.StringVar(value=lang["Font Size:"]), anchor="e")
+        label_font = tk.Label(master=frame1, text=lang["Font Size:"], anchor="e")
         label_font.place(relwidth=0.08, relheight=relh, relx=0.51, rely=rely, anchor='nw')
 
         entry_relsize = ttk.Combobox(master=frame1, textvariable=tk_relsize)
@@ -808,7 +821,7 @@ if __name__ == '__main__':
         btn_font.place(relwidth=0.15, relheight=relh, relx=0.8, rely=rely, anchor='nw')
 
         rely += devy
-        label_size = tk.Label(master=frame1, textvariable=tk.StringVar(value=lang["Video Size:"]), anchor="e")
+        label_size = tk.Label(master=frame1, text=lang["Video Size:"], anchor="e")
         label_size.place(relwidth=0.1, relheight=relh, relx=0.05, rely=rely, anchor='nw')
         entry_width = tk.Entry(master=frame1, textvariable=tk_width)
         entry_width.place(relwidth=0.05, relheight=relh, relx=0.15, rely=rely, anchor='nw')
@@ -823,14 +836,14 @@ if __name__ == '__main__':
         entry_height.bind("<FocusOut>", fastPreview)
         entry_height.bind('<Return>', fastPreview)
 
-        label_fps = tk.Label(master=frame1, textvariable=tk.StringVar(value=lang["FPS:"]), anchor="e")
+        label_fps = tk.Label(master=frame1, text=lang["FPS:"], anchor="e")
         label_fps.place(relwidth=0.1, relheight=relh, relx=0.35, rely=rely, anchor='nw')
         entry_fps = ttk.Combobox(master=frame1, textvariable=tk_fps)
         entry_fps["values"] = (60.0, 50.0, 30.0, 25.0, 20.0, 15.0)
         entry_fps.current(2)
         entry_fps.place(relwidth=0.05, relheight=relh, relx=0.45, rely=rely, anchor='nw')
 
-        label_brv = tk.Label(master=frame1, textvariable=tk.StringVar(value=lang["Video BR (Mbps):"]), anchor="e")
+        label_brv = tk.Label(master=frame1, text=lang["Video BR (Mbps):"], anchor="e")
         label_brv.place(relwidth=0.12, relheight=relh, relx=0.53, rely=rely, anchor='nw')
         entry_brv = tk.Entry(master=frame1, textvariable=tk_br_video)
         entry_brv.place(relwidth=0.05, relheight=relh, relx=0.65, rely=rely, anchor='nw')
@@ -839,7 +852,7 @@ if __name__ == '__main__':
         btn_autob.place(relwidth=0.15, relheight=relh, relx=0.8, rely=rely, anchor='nw')
 
         rely += devy
-        label_bra = tk.Label(master=frame1, textvariable=tk.StringVar(value=lang["Audio BR:"]), anchor="e")
+        label_bra = tk.Label(master=frame1, text=lang["Audio BR:"], anchor="e")
         label_bra.place(relwidth=0.1, relheight=relh, relx=0.05, rely=rely, anchor='nw')
         list_bra = ttk.Combobox(master=frame1, textvariable=tk_br_audio)
         list_bra["values"] = (320, 256, 192, 128, 96, 64, 48)
@@ -852,7 +865,7 @@ if __name__ == '__main__':
                                       variable=tk_audio_normal, onvalue=True, offvalue=False, anchor="e")
         check_normal.place(relwidth=0.15, relheight=relh, relx=0.3, rely=rely, anchor='nw')
 
-        label_bg_mode = tk.Label(master=frame1, textvariable=tk.StringVar(value=lang["BG Mode:"]), anchor="e")
+        label_bg_mode = tk.Label(master=frame1, text=lang["BG Mode:"], anchor="e")
         label_bg_mode.place(relwidth=0.1, relheight=relh, relx=0.7, rely=rely, anchor='nw')
         list_bg_mode = ttk.Combobox(master=frame1, textvariable=tk_bg_mode, state="readonly")
         bg_mode_dic = {
@@ -870,7 +883,7 @@ if __name__ == '__main__':
         list_bg_mode.place(relwidth=0.15, relheight=relh, relx=0.8, rely=rely, anchor='nw')
 
         rely += devy
-        label_range = tk.Label(master=frame1, textvariable=tk.StringVar(value=lang["Analyze Freq:"]), anchor="e")
+        label_range = tk.Label(master=frame1, text=lang["Analyze Freq:"], anchor="e")
         label_range.place(relwidth=0.1, relheight=relh, relx=0.05, rely=rely, anchor='nw')
         entry_low = tk.Entry(master=frame1, textvariable=tk_fq_low)
         entry_low.place(relwidth=0.05, relheight=relh, relx=0.15, rely=rely, anchor='nw')
@@ -881,21 +894,21 @@ if __name__ == '__main__':
         label_hz = tk.Label(master=frame1, textvariable=tk.StringVar(value=lang["Hz"]), anchor="w")
         label_hz.place(relwidth=0.03, relheight=relh, relx=0.28, rely=rely, anchor='nw')
 
-        label_bins = tk.Label(master=frame1, textvariable=tk.StringVar(value=lang["Spectrum Num:"]), anchor="e")
+        label_bins = tk.Label(master=frame1, text=lang["Spectrum Num:"], anchor="e")
         label_bins.place(relwidth=0.1, relheight=relh, relx=0.35, rely=rely, anchor='nw')
         entry_bins = ttk.Combobox(master=frame1, textvariable=tk_bins)
         entry_bins["values"] = (6, 12, 18, 24, 36, 48, 60, 72, 84, 96, 108, 120)
         entry_bins.current(5)
         entry_bins.place(relwidth=0.05, relheight=relh, relx=0.45, rely=rely, anchor='nw')
 
-        label_scalar = tk.Label(master=frame1, textvariable=tk.StringVar(value=lang["Spectrum Scalar:"]), anchor="e")
+        label_scalar = tk.Label(master=frame1, text=lang["Spectrum Scalar:"], anchor="e")
         label_scalar.place(relwidth=0.12, relheight=relh, relx=0.53, rely=rely, anchor='nw')
         entry_scalar = ttk.Combobox(master=frame1, textvariable=tk_scalar)
         entry_scalar["values"] = (0.05, 0.1, 0.2, 0.5, 0.7, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0)
         entry_scalar.current(5)
         entry_scalar.place(relwidth=0.05, relheight=relh, relx=0.65, rely=rely, anchor='nw')
 
-        label_color = tk.Label(master=frame1, textvariable=tk.StringVar(value=lang["Spec. Hue:"]), anchor="e")
+        label_color = tk.Label(master=frame1, text=lang["Spec. Hue:"], anchor="e")
         label_color.place(relwidth=0.1, relheight=relh, relx=0.7, rely=rely, anchor='nw')
         list_color = ttk.Combobox(master=frame1, textvariable=tk_color, state="readonly")
 
@@ -927,7 +940,7 @@ if __name__ == '__main__':
 
         rely += devy
 
-        label_style = tk.Label(master=frame1, textvariable=tk.StringVar(value=lang["Spectrum Style:"]), anchor="e")
+        label_style = tk.Label(master=frame1, text=lang["Spectrum Style:"], anchor="e")
         label_style.place(relwidth=0.1, relheight=relh, relx=0.05, rely=rely, anchor='nw')
         list_style = ttk.Combobox(master=frame1, textvariable=tk_style)
 
@@ -957,7 +970,7 @@ if __name__ == '__main__':
         list_style.current(0)
         list_style.place(relwidth=0.13, relheight=relh, relx=0.15, rely=rely, anchor='nw')
 
-        label_linewidth = tk.Label(master=frame1, textvariable=tk.StringVar(value=lang["Line Width:"]), anchor="e")
+        label_linewidth = tk.Label(master=frame1, text=lang["Line Width:"], anchor="e")
         label_linewidth.place(relwidth=0.1, relheight=relh, relx=0.35, rely=rely, anchor='nw')
         entry_linewidth = ttk.Combobox(master=frame1, textvariable=tk_linewidth)
         entry_linewidth["values"] = (
@@ -965,14 +978,14 @@ if __name__ == '__main__':
         entry_linewidth.current(11)
         entry_linewidth.place(relwidth=0.05, relheight=relh, relx=0.45, rely=rely, anchor='nw')
 
-        label_smooth = tk.Label(master=frame1, textvariable=tk.StringVar(value=lang["Spectrum Stabilize:"]), anchor="e")
+        label_smooth = tk.Label(master=frame1, text=lang["Spectrum Stabilize:"], anchor="e")
         label_smooth.place(relwidth=0.15, relheight=relh, relx=0.50, rely=rely, anchor='nw')
         list_smooth = ttk.Combobox(master=frame1, textvariable=tk_smooth)
         list_smooth["values"] = (0, 1, 2, 3, 5, 6, 7, 8, 9, 10)
         list_smooth.current(0)
         list_smooth.place(relwidth=0.05, relheight=relh, relx=0.65, rely=rely, anchor='nw')
 
-        label_saturation = tk.Label(master=frame1, textvariable=tk.StringVar(value=lang["Spec. Sat.:"]), anchor="e")
+        label_saturation = tk.Label(master=frame1, text=lang["Spec. Sat.:"], anchor="e")
         label_saturation.place(relwidth=0.1, relheight=relh, relx=0.7, rely=rely, anchor='nw')
         entry_saturation = ttk.Combobox(master=frame1, textvariable=tk_saturation)
         entry_saturation["values"] = (1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0.0)
@@ -980,7 +993,7 @@ if __name__ == '__main__':
         entry_saturation.place(relwidth=0.15, relheight=relh, relx=0.8, rely=rely, anchor='nw')
 
         rely += devy
-        label_rotate = tk.Label(master=frame1, textvariable=tk.StringVar(value=lang["Spin FG(rpm):"]), anchor="e")
+        label_rotate = tk.Label(master=frame1, text=lang["Spin FG(rpm):"], anchor="e")
         label_rotate.place(relwidth=0.15, relheight=relh, relx=0.3, rely=rely, anchor='nw')
         entry_rotate = ttk.Combobox(master=frame1, textvariable=tk_rotate)
         entry_rotate["values"] = (6.0, 5.0, 4.0, 3.0, 2.0, 1.0, 0.0, - 1.0, -2.0, -3.0, -4.0, -5.0, -6.0)
@@ -991,7 +1004,7 @@ if __name__ == '__main__':
                                         variable=tk_use_glow, onvalue=True, offvalue=False, anchor="e")
         check_use_glow.place(relwidth=0.15, relheight=relh, relx=0.55, rely=rely, anchor='nw')
 
-        label_bright = tk.Label(master=frame1, textvariable=tk.StringVar(value=lang["Spec. Brt.:"]), anchor="e")
+        label_bright = tk.Label(master=frame1, text=lang["Spec. Brt.:"], anchor="e")
         label_bright.place(relwidth=0.1, relheight=relh, relx=0.7, rely=rely, anchor='nw')
         entry_bright = ttk.Combobox(master=frame1, textvariable=tk_bright)
         entry_bright["values"] = (1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0.0)

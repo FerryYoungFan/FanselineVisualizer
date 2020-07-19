@@ -1,5 +1,7 @@
 from tkinter import *
-from PIL import Image, ImageTk
+from PIL import Image
+import base64
+from io import BytesIO
 from tkinter.filedialog import asksaveasfile
 import tkinter.messagebox
 from LanguagePack import *
@@ -12,7 +14,7 @@ class ImageViewer(Frame):
         self.master = master
         self.max_w, self.max_h = 1280, 720
         self.img_copy, self.image, self.background_image = None, None, None
-        self.background = Label(self,bg="#666666")
+        self.background = Label(self, bg="#666666")
         self.background.pack(fill=BOTH, expand=YES)
         self.background.bind('<Configure>', self._resize_image)
         self.place(relx=0, rely=0, relwidth=1, relheight=1, anchor='nw')
@@ -41,7 +43,7 @@ class ImageViewer(Frame):
             width = int(round(img_w * ratio))
             height = int(round(img_h * ratio))
             self.image = self.img_copy.resize((width, height))
-            self.background_image = ImageTk.PhotoImage(self.image)
+            self.background_image = pil2tk(self.image)
             self.background.configure(image=self.background_image)
 
     def _resize_image(self, event):
@@ -54,7 +56,7 @@ class ImageViewer(Frame):
             width = int(round(img_w * ratio))
             height = int(round(img_h * ratio))
             self.image = self.img_copy.resize((width, height))
-            self.background_image = ImageTk.PhotoImage(self.image)
+            self.background_image = pil2tk(self.image)
             self.background.configure(image=self.background_image)
 
     def _popupMenu(self, event):
@@ -75,7 +77,7 @@ class ImageViewer(Frame):
                 self.ratio = 1.0
             self.master.geometry("{0}x{1}".format(width, height))
             self.image = self.img_copy.resize((width, height))
-            self.background_image = ImageTk.PhotoImage(self.image)
+            self.background_image = pil2tk(self.image)
             self.background.configure(image=self.background_image)
         else:
             win_w = self.winfo_width()
@@ -86,7 +88,7 @@ class ImageViewer(Frame):
             width = int(round(img_w * ratio))
             height = int(round(img_h * ratio))
             self.image = self.img_copy.resize((width, height))
-            self.background_image = ImageTk.PhotoImage(self.image)
+            self.background_image = pil2tk(self.image)
             self.background.configure(image=self.background_image)
 
     def setGUI(self, width=1280, height=720):
@@ -116,6 +118,13 @@ class ImageViewer(Frame):
                 self.img_copy.save(fname, quality=100)
             except:
                 tkinter.messagebox.showinfo(self.lang["Notice"], self.lang["Cannot Save Image!"])
+
+
+def pil2tk(image):
+    buffer = BytesIO()
+    image.save(buffer, quality=100, format="PNG")
+    base64_str = base64.b64encode(buffer.getvalue())
+    return PhotoImage(data=base64_str)
 
 
 if __name__ == '__main__':

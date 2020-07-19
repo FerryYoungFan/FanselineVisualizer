@@ -121,9 +121,9 @@ lang_cn_s = {
     "Spectrum Only": "仅频谱",
     "Glow Effect (SLOW)": "发光效果【缓慢】",
     "Project Website: ": "项目网站：",
-
     "Spin FG(rpm):": "旋转主图(转/分)：",
     "Error! Cannot save config!": "错误！不能保存配置！",
+    "FFMPEG not found, please install FFMPEG!": "FFMPEG未安装，请安装FFMPEG！",
 
 }
 

@@ -170,8 +170,7 @@ class AudioVisualizer:
         self.style = style
 
     def getFrame(self, hist, amplify=5, color_mode="color4x", bright=1.0, saturation=1.0, use_glow=True, rotate=0.0,
-                 fps=30.0,
-                 frame_pt=0, bg_mode=0, fg_img=None):
+                 fps=30.0, frame_pt=0, bg_mode=0, fg_img=None):
         bins = hist.shape[0]
         hist = np.clip(hist * amplify, 0, 1)
 
@@ -394,8 +393,9 @@ class AudioVisualizer:
                 circle(draw, line_points[1], line_thick_slim, color)
 
         if use_glow:
-            canvas_blur = canvas.filter(ImageFilter.GaussianBlur(radius=self.blur / 2 * ratio))
-            canvas = ImageChops.add(canvas, canvas_blur)
+            canvas = glowFx(canvas, self.blur * ratio, 1.5)
+            # canvas_blur = canvas.filter(ImageFilter.BoxBlur(radius=self.blur * ratio))
+            # canvas = ImageChops.add(canvas, canvas_blur)
 
         canvas = canvas.resize((self.width, self.height), Image.ANTIALIAS)
 

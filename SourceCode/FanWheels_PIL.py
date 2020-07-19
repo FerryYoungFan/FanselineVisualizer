@@ -174,3 +174,15 @@ def hsv_to_rgb(h, s, v):
     if i == 3: return p, q, v
     if i == 4: return t, p, v
     if i == 5: return v, p, q
+
+
+def glowFx(image, radius=0, brt=1.5):
+    if radius > 0:
+        base = image.copy()
+        image = image.filter(ImageFilter.BoxBlur(radius=radius))
+        enhancer = ImageEnhance.Brightness(image)
+        image = enhancer.enhance(brt)
+        base.paste(image, (0, 0), image)
+        return base
+    else:
+        return image
