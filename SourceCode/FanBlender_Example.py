@@ -16,8 +16,8 @@ if __name__ == '__main__':
                    logo_path=r"./Source/logo.png")  # Set File Path
     fb.setOutputPath(output_path=r"./Output",
                      filename="test.mp4")  # Set Output Path
-    fb.setText(text="Your Text Here", font="./Source/font.otf", relsize=1.0, text_brt=0.8)
-    # Set Text at the Bottom (Relative Font Size: 0.3 - 3.1)
+    fb.setText(text="Your Text Here", font="./Source/font.otf", relsize=1.0, text_brt=0.8, text_glow=True)
+    # Set Text at the Bottom (Relative Font Size: 0.3 - 5.0)
 
     fb.setSpec(bins=60, lower=20, upper=1500,
                color=fb.color_dic["Gradient: Green - Blue"], bright=0.6, saturation=0.8,

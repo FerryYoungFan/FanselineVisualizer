@@ -16,7 +16,7 @@ def cropCircle(img, size=None):
     img = cropToCenter(img)
     pad_size = 2
     if size is not None:
-        img = img.resize((size + pad_size * 2, size + pad_size * 2), Image.ANTIALIAS)
+        img = img.resize((size, size), Image.ANTIALIAS)
     # Antialiasing Drawing
     width, height = img.size
     scale = 4
@@ -25,8 +25,7 @@ def cropCircle(img, size=None):
     draw = ImageDraw.Draw(mask)
     draw.ellipse((0, 0) + size_anti, fill=255)
     mask = mask.resize((size, size), Image.ANTIALIAS)
-    mask_pad = ImageOps.expand(mask, (pad_size, pad_size, pad_size, pad_size))
-    img.putalpha(mask_pad)
+    img.putalpha(mask)
     return img
 
 
@@ -98,7 +97,7 @@ def pasteMiddle(fg, bg, glow=False, blur=2, bright=1):
     return bg
 
 
-def glowText(img, text=None, font_size=35, font_set=None, bright=1.0, blur=2, logo=None, use_glow=True):
+def glowText(img, text=None, font_size=35, font_set=None, bright=1.0, blur=2, logo=None, use_glow=True, yoffset=0):
     brt = int(round(bright * 255))
     if brt > 255:
         brt = 255
@@ -123,11 +122,12 @@ def glowText(img, text=None, font_size=35, font_set=None, bright=1.0, blur=2, lo
         w, h = draw.textsize(text, font=_font)
     else:
         w, h = 0, 0
+    print("yoff", yoffset)
+    print("fsize", font_size)
     xoffset = 0
-
     if logo is not None:
         lg_w, lg_h = logo.size
-        hoffset = 1.2
+        hoffset = 1.1
         lg_nh = round(font_size * hoffset)
         lg_nw = round(lg_w * lg_nh / lg_h)
         logo = logo.resize((lg_nw, lg_nh), Image.ANTIALIAS)
@@ -136,13 +136,15 @@ def glowText(img, text=None, font_size=35, font_set=None, bright=1.0, blur=2, lo
         else:
             xoffset = lg_nw
         w = w + xoffset
+        _x_logo = int(round((width - w) / 2))
+        _y_logo = int(round(yoffset*ratio-font_size*(hoffset-1)/2))
+        print("paste it!")
         try:
-            canvas.paste(logo, (round((width - w) / 2), round(height - 2 * font_size)), logo)
+            canvas.paste(logo, (_x_logo, _y_logo), logo)
         except:
-            canvas.paste(logo, (round((width - w) / 2), round(height - 2 * font_size)))
+            canvas.paste(logo, (_x_logo, _y_logo))
     if text:
-        draw.text(((width - w) / 2 + xoffset, height - 2 * font_size), text, fill=(brt, brt, brt, 255),
-                  font=_font)
+        draw.text(((width - w) / 2 + xoffset, yoffset*ratio), text, fill=(brt, brt, brt, 255),font=_font)
     if use_glow:
         mask_blur = canvas.split()[-1]
         mask_blur = mask_blur.filter(ImageFilter.GaussianBlur(radius=blur * 2))

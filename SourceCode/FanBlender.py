@@ -3,7 +3,7 @@ Audio Visualizer
 By Twitter @FanKetchup
 https://github.com/FerryYoungFan/FanselineVisualizer
 """
-__version__ = "1.0.8"
+__version__ = "1.0.9"
 
 try:
     from _CheckEnvironment import checkEnvironment
@@ -143,20 +143,22 @@ class FanBlender:
         except:
             self._ffmpeg_path = None
 
-        self._frame_size = min(self.frame_width, self.frame_height)
+        self._frame_size = 0
         self._relsize = 1.0
-        self._font_size = int(round(30 / 1080 * self._frame_size * self._relsize))
+        self._font_size = 0
         self._text_brt = 1.0
+        self._text_glow = False
+        self._yoffset = 0
         # A good ratio for text and frame size
 
-        self._blur = int(round(2 / 1080 * self._frame_size))
-        self._blur_bg = int(round(41 / 1080 * self._frame_size))
+        self._blur = 0
+        self._blur_bg = 0
         self.blur_bg = True
         self.use_glow = False
         self.style = 0
         self.linewidth = 1.0
         self.rotate = 0
-        self._line_thick = int(round(self.linewidth * 4 / 1080 * self._frame_size))
+        self._line_thick = 0
 
         self._amplify = self.setAmplify()
 
@@ -178,6 +180,15 @@ class FanBlender:
         self.bg_mode = 0
         self.bg_blended = False
         self.ffmpegCheck()
+
+    def calcRel(self):
+        self._frame_size = min(self.frame_width, self.frame_height)
+        self._font_size = int(round(30 / 1080 * self._frame_size * self._relsize))
+        self._blur = int(round(2 / 1080 * self._frame_size))
+        self._blur_bg = int(round(41 / 1080 * self._frame_size))
+        self._line_thick = int(round(self.linewidth * 4 / 1080 * self._frame_size))
+        self._yoffset = clip(self.frame_height - self._font_size * 2.1, self.frame_height * 0.95,
+                             self.frame_height * 0.95 - self._font_size)
 
     def ffmpegCheck(self):
         if self._ffmpeg_path is None:
@@ -270,7 +281,7 @@ class FanBlender:
             self.ensure_dir(os.path.join(output_path, filename))
             self.output_path = cvtFileName(os.path.join(output_path, filename), "mp4")
 
-    def setText(self, text="", font=None, relsize=None, text_brt=1.0):
+    def setText(self, text="", font=None, relsize=None, text_brt=1.0, text_glow=None):
         self.text_bottom = text
         if font is None or (not os.path.exists(font)):
             if os.path.exists("./Source/font.otf"):
@@ -280,11 +291,11 @@ class FanBlender:
             else:
                 font = "Arial.ttf"
         if relsize is not None:
-            self._relsize = clip(relsize, 0.1, 3.1)
-            self._font_size = int(round(30 / 1080 * self._frame_size * self._relsize))
+            self._relsize = clip(relsize, 0.1, 5)
         if text_brt is not None:
             self._text_brt = clip(text_brt, 0, 1)
-
+        if text_glow is not None:
+            self._text_glow = text_glow
         self.font = font
         self.bg_blended = False
 
@@ -325,7 +336,6 @@ class FanBlender:
             self.linewidth = float(clip(linewidth, 0.01, 50))
 
         self._amplify = self.setAmplify()
-        self._line_thick = self.linewidth * 4 * self._frame_size / 1080
         self.visualizer = None
         self.bg_blended = False
 
@@ -355,12 +365,6 @@ class FanBlender:
         if rotate is not None:
             self.rotate = float(rotate)
 
-        self._frame_size = min(self.frame_width, self.frame_height)
-        self._font_size = int(round(30 / 1080 * self._frame_size * self._relsize))
-        self._blur = int(round(2 / 1080 * self._frame_size))
-        self._blur_bg = int(round(41 / 1080 * self._frame_size))
-        self._line_thick = self.linewidth * 4 / 1080 * self._frame_size
-
         self.visualizer = None
         self.bg_blended = False
 
@@ -372,6 +376,7 @@ class FanBlender:
             self.audio_bit_rate = int(round(clip(br_kbps, 5, 10000)))
 
     def genBackground(self):
+        self.calcRel()
         if self.bg_blended:
             return
         image, bg = None, None
@@ -427,18 +432,19 @@ class FanBlender:
             else:
                 background = genBG(bg, size=(self.frame_width, self.frame_height), blur=0, bright=1.0)
         if self.bg_mode >= -1 and not self.bg_mode == 2:
-            background = pasteMiddle(foreground, background, glow=self.use_glow, blur=self._blur * 2,
-                                     bright=self._bright)
+            if self.rotate == 0:
+                background = pasteMiddle(foreground, background, glow=self.use_glow, blur=self._blur * 2,
+                                         bright=self._bright)
             background = glowText(background, self.text_bottom, self._font_size, self.font, bright=self._text_brt,
-                                  blur=self._blur, logo=logofile, use_glow=self.use_glow)
+                                  blur=self._blur, logo=logofile, use_glow=self._text_glow, yoffset=self._yoffset)
 
-        gap = self._font_size * 2.1
+        rad_max = (self._yoffset - self.frame_height / 2) * 0.97
         if self.text_bottom is None or self.text_bottom == "":
             if self.logo_path is None or not os.path.exists(self.logo_path):
-                gap = 0
+                rad_max = self.frame_height / 2
         self.visualizer = AudioVisualizer(img=background,
                                           rad_min=self._frame_size / 4 * 1.1,
-                                          rad_max=min(self.frame_height / 2 - gap, self._frame_size / 2.1),
+                                          rad_max=min(rad_max, self._frame_size / 2.1),
                                           line_thick=self._line_thick,
                                           blur=self._blur, style=self.style)
         self.log("Blending Background... Done!")
@@ -449,8 +455,8 @@ class FanBlender:
         xs = np.linspace(0, 10 * np.pi, self.bins)
         ys = 0.5 + 0.6 * np.cos(xs)
         frame_sample = self.visualizer.getFrame(hist=ys, amplify=1, color_mode=self.spectrum_color, bright=self._bright,
-                                                saturation=self._saturation, use_glow=self.use_glow, fg_img=self.fg_img,
-                                                bg_mode=self.bg_mode)
+                                                saturation=self._saturation, use_glow=self.use_glow, rotate=self.rotate,
+                                                fps=30, frame_pt=90, fg_img=self.fg_img, bg_mode=self.bg_mode)
         if localViewer:
             frame_sample.show()
         return frame_sample
@@ -594,8 +600,8 @@ if __name__ == '__main__':
                    logo_path=r"./Source/logo.png")  # Set File Path
     fb.setOutputPath(output_path=r"./Output",
                      filename="test.mp4")  # Set Output Path
-    fb.setText(text="Your Text Here", font="./Source/font.otf", relsize=1.0, text_brt=0.8)
-    # Set Text at the Bottom (Relative Font Size: 0.3 - 3.1)
+    fb.setText(text="Your Text Here", font="./Source/font.otf", relsize=1.0, text_brt=0.8, text_glow=True)
+    # Set Text at the Bottom (Relative Font Size: 0.3 - 5.0)
 
     fb.setSpec(bins=60, lower=20, upper=1500,
                color=fb.color_dic["Gradient: Green - Blue"], bright=0.6, saturation=0.8,

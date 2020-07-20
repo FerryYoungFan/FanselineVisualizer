@@ -73,7 +73,7 @@ class InfoBridge:
                 label_bra, label_kbps, label_preseta, label_presetv, list_lang, label_lang, label_smooth, list_smooth,
                 entry_bg, btn_bg, entry_relsize, check_use_glow, label_bright, entry_bright, label_bg_mode,
                 list_bg_mode, label_style, list_style, label_linewidth, entry_linewidth, entry_rotate, label_rotate,
-                label_saturation, entry_saturation, label_text_brt, entry_text_brt]
+                label_saturation, entry_saturation, label_text_brt, entry_text_brt, check_text_glow]
         for el in elem:
             el["state"] = fg
 
@@ -211,7 +211,7 @@ def getAllValues():
         tk_text, tk_font, tk_bins, tk_fq_low, tk_fq_high, color_dic, list_color, tk_scalar, \
         tk_width, tk_height, tk_fps, tk_br_video, tk_br_audio, tk_audio_normal, tk_smooth, \
         tk_bg_path, tk_bright, tk_blur_bg, tk_use_glow, tk_relsize, tk_bg_mode, bg_mode_dic, \
-        tk_style, tk_linewidth, style_dic, tk_rotate, tk_saturation, tk_text_brt
+        tk_style, tk_linewidth, style_dic, tk_rotate, tk_saturation, tk_text_brt, tk_text_glow
 
     def checkStr(strtk):
         if strtk.get():
@@ -271,6 +271,7 @@ def getAllValues():
         "blur_bg": bg_mode_dic[checkStr(tk_bg_mode)][0],
         "bg_mode": bg_mode_dic[checkStr(tk_bg_mode)][1],
         "use_glow": tk_use_glow.get(),
+        "text_glow": tk_text_glow.get(),
         "relsize": checkFloat(tk_relsize),
 
         "width": checkInt(tk_width),
@@ -313,8 +314,8 @@ def setBlender(param_dict):
                    logo_path=param_dict["logo_path"])
     fb.setOutputPath(output_path=param_dict["output_path"],
                      filename=param_dict["filename"])
-    fb.setText(text=param_dict["text"], font=param_dict["font"],
-               relsize=param_dict["relsize"], text_brt=param_dict["text_brt"])
+    fb.setText(text=param_dict["text"], font=param_dict["font"], relsize=param_dict["relsize"],
+               text_brt=param_dict["text_brt"], text_glow=param_dict["text_glow"])
     fb.setSpec(bins=param_dict["bins"], lower=param_dict["lower"], upper=param_dict["upper"],
                color=param_dict["color"], bright=param_dict["bright"], saturation=param_dict["saturation"],
                scalar=param_dict["scalar"], smooth=param_dict["smooth"],
@@ -457,7 +458,7 @@ def loadConfig():
         tk_text, tk_font, tk_bins, tk_fq_low, tk_fq_high, color_dic, list_color, tk_scalar, \
         tk_width, tk_height, tk_fps, tk_br_video, tk_br_audio, tk_audio_normal, tk_smooth, \
         tk_bg_path, tk_bright, tk_blur_bg, tk_use_glow, tk_relsize, tk_bg_mode, label_mp4, \
-        style_dic, tk_saturation, tk_text_brt
+        style_dic, tk_saturation, tk_text_brt, tk_text_glow
 
     def fileCheck(dicv, tk_value):
         try:
@@ -519,6 +520,7 @@ def loadConfig():
     numCheck("text_brt", tk_text_brt)
     numCheck("linewidth", tk_linewidth)
     numCheck("rotate", tk_rotate)
+    numCheck("text_glow", tk_text_glow)
 
     try:
         if vdic["color"] is not None:
@@ -648,6 +650,8 @@ if __name__ == '__main__':
         tk_font = tk.StringVar(value="./Source/font.otf")
         tk_relsize = tk.DoubleVar(value=1.0)
         bindPreview(tk_relsize)
+        tk_text_glow = tk.BooleanVar(value=False)
+        bindPreview(tk_text_glow)
         tk_text_brt = tk.DoubleVar(value=1.0)
         bindPreview(tk_text_brt)
 
@@ -676,6 +680,7 @@ if __name__ == '__main__':
         tk_use_glow = tk.BooleanVar(value=False)
         bindPreview(tk_use_glow)
         tk_rotate = tk.DoubleVar(value=0)
+        bindPreview(tk_rotate)
 
         tk_width = tk.IntVar()
         tk_height = tk.IntVar()
@@ -779,17 +784,23 @@ if __name__ == '__main__':
         entry_img.place(relwidth=0.74, relheight=relh, relx=0.05, rely=rely, anchor='nw')
         btn_img = tk.Button(master=frame1, text=lang["Foreground Image"], command=selectImage)
         btn_img.place(relwidth=0.15, relheight=relh, relx=0.8, rely=rely, anchor='nw')
+        entry_img.bind("<FocusOut>", fastPreview)
+        entry_img.bind('<Return>', fastPreview)
 
         rely += devy
         entry_bg = tk.Entry(master=frame1, textvariable=tk_bg_path)
         entry_bg.place(relwidth=0.28, relheight=relh, relx=0.05, rely=rely, anchor='nw')
         btn_bg = tk.Button(master=frame1, text=lang["Background Image"], command=selectBG)
         btn_bg.place(relwidth=0.15, relheight=relh, relx=0.34, rely=rely, anchor='nw')
+        entry_bg.bind("<FocusOut>", fastPreview)
+        entry_bg.bind('<Return>', fastPreview)
 
         entry_logo = tk.Entry(master=frame1, textvariable=tk_logo_path)
         entry_logo.place(relwidth=0.29, relheight=relh, relx=0.5, rely=rely, anchor='nw')
         btn_logo = tk.Button(master=frame1, text=lang["Logo File"], command=selectLogo)
         btn_logo.place(relwidth=0.15, relheight=relh, relx=0.8, rely=rely, anchor='nw')
+        entry_logo.bind("<FocusOut>", fastPreview)
+        entry_logo.bind('<Return>', fastPreview)
 
         rely += devy
         label_textplz = tk.Label(master=frame1, text=lang["Your Text:"], anchor="e")
@@ -811,8 +822,8 @@ if __name__ == '__main__':
         label_font.place(relwidth=0.08, relheight=relh, relx=0.51, rely=rely, anchor='nw')
 
         entry_relsize = ttk.Combobox(master=frame1, textvariable=tk_relsize)
-        entry_relsize["values"] = (3.0, 2.8, 2.5, 2.2, 2.0, 1.8, 1.5, 1.2, 1.0, 0.8, 0.5)
-        entry_relsize.current(8)
+        entry_relsize["values"] = (5.0, 4.5, 4.0, 3.5, 3.0, 2.8, 2.5, 2.2, 2.0, 1.8, 1.5, 1.2, 1.0, 0.8, 0.5)
+        entry_relsize.current(12)
         entry_relsize.place(relwidth=0.05, relheight=relh, relx=0.59, rely=rely, anchor='nw')
 
         entry_font = tk.Entry(master=frame1, textvariable=tk_font)
@@ -863,7 +874,14 @@ if __name__ == '__main__':
 
         check_normal = tk.Checkbutton(master=frame1, text=lang["Normalize Volume"],
                                       variable=tk_audio_normal, onvalue=True, offvalue=False, anchor="e")
-        check_normal.place(relwidth=0.15, relheight=relh, relx=0.3, rely=rely, anchor='nw')
+        check_normal.place(relwidth=0.15, relheight=relh, relx=0.35, rely=rely, anchor='nw')
+
+        label_rotate = tk.Label(master=frame1, text=lang["Spin FG(rpm):"], anchor="e")
+        label_rotate.place(relwidth=0.15, relheight=relh, relx=0.5, rely=rely, anchor='nw')
+        entry_rotate = ttk.Combobox(master=frame1, textvariable=tk_rotate)
+        entry_rotate["values"] = (6.0, 5.0, 4.0, 3.0, 2.0, 1.0, 0.0, -1.0, -2.0, -3.0, -4.0, -5.0, -6.0)
+        entry_rotate.current(6)
+        entry_rotate.place(relwidth=0.05, relheight=relh, relx=0.65, rely=rely, anchor='nw')
 
         label_bg_mode = tk.Label(master=frame1, text=lang["BG Mode:"], anchor="e")
         label_bg_mode.place(relwidth=0.1, relheight=relh, relx=0.7, rely=rely, anchor='nw')
@@ -993,14 +1011,12 @@ if __name__ == '__main__':
         entry_saturation.place(relwidth=0.15, relheight=relh, relx=0.8, rely=rely, anchor='nw')
 
         rely += devy
-        label_rotate = tk.Label(master=frame1, text=lang["Spin FG(rpm):"], anchor="e")
-        label_rotate.place(relwidth=0.15, relheight=relh, relx=0.3, rely=rely, anchor='nw')
-        entry_rotate = ttk.Combobox(master=frame1, textvariable=tk_rotate)
-        entry_rotate["values"] = (6.0, 5.0, 4.0, 3.0, 2.0, 1.0, 0.0, - 1.0, -2.0, -3.0, -4.0, -5.0, -6.0)
-        entry_rotate.current(6)
-        entry_rotate.place(relwidth=0.05, relheight=relh, relx=0.45, rely=rely, anchor='nw')
 
-        check_use_glow = tk.Checkbutton(master=frame1, text=lang["Glow Effect (SLOW)"],
+        check_text_glow = tk.Checkbutton(master=frame1, text=lang["Glow Text"],
+                                         variable=tk_text_glow, onvalue=True, offvalue=False, anchor="e")
+        check_text_glow.place(relwidth=0.15, relheight=relh, relx=0.35, rely=rely, anchor='nw')
+
+        check_use_glow = tk.Checkbutton(master=frame1, text=lang["Glow Spec. (SLOW)"],
                                         variable=tk_use_glow, onvalue=True, offvalue=False, anchor="e")
         check_use_glow.place(relwidth=0.15, relheight=relh, relx=0.55, rely=rely, anchor='nw')
 
