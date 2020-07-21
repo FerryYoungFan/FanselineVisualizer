@@ -1,12 +1,25 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 from tkinter import *
 from PIL import Image
-import base64
-from io import BytesIO
 from tkinter.filedialog import asksaveasfile
 import tkinter.messagebox
 from LanguagePack import *
 import os
+try:
+    from PIL import ImageTk
+    def pil2tk(image):
+        return ImageTk.PhotoImage(image)
 
+except:
+    import base64
+    from io import BytesIO
+    def pil2tk(image):
+        buffer = BytesIO()
+        image.save(buffer, quality=100, format="PNG")
+        base64_str = base64.b64encode(buffer.getvalue())
+        return PhotoImage(data=base64_str)
 
 class ImageViewer(Frame):
     def __init__(self, master, *pargs):
@@ -118,13 +131,6 @@ class ImageViewer(Frame):
                 self.img_copy.save(fname, quality=100)
             except:
                 tkinter.messagebox.showinfo(self.lang["Notice"], self.lang["Cannot Save Image!"])
-
-
-def pil2tk(image):
-    buffer = BytesIO()
-    image.save(buffer, quality=100, format="PNG")
-    base64_str = base64.b64encode(buffer.getvalue())
-    return PhotoImage(data=base64_str)
 
 
 if __name__ == '__main__':

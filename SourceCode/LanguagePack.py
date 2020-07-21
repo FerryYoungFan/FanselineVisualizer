@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 lang_cn_s = {
     "Fanseline Audio Visualizer": "帆室邻音频可视化视频制作工具",
     "Stop Blending": "取消渲染",

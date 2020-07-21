@@ -1,4 +1,6 @@
-from FanBlender import FanBlender
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+from FanBlender import FanBlender, getPath
 
 """
 Audio Visualizer - Example
@@ -10,13 +12,17 @@ if __name__ == '__main__':
     # Example of Using FanBlender
 
     fb = FanBlender()  # Initialize Blender
-    fb.setFilePath(image_path=r"./Source/fallback.png",
-                   bg_path=r"./Source/background.jpg",
-                   sound_path=r"./Source/test.mp3",
-                   logo_path=r"./Source/logo.png")  # Set File Path
-    fb.setOutputPath(output_path=r"./Output",
+
+    fb.setFilePath(image_path=getPath("Source/fallback.png"),
+                   bg_path=getPath("Source/background.jpg"),
+                   sound_path=getPath("Source/test.mp3"),
+                   logo_path=getPath("Source/logo.png"))  # Set File Path
+
+    fb.setOutputPath(output_path=getPath("./Output"),
                      filename="test.mp4")  # Set Output Path
-    fb.setText(text="Your Text Here", font="./Source/font.otf", relsize=1.0, text_brt=0.8, text_glow=True)
+
+    fb.setText(text="Your Text Here", font=getPath("Source/font.otf"),
+               relsize=1.0, text_brt=0.8, text_glow=True)
     # Set Text at the Bottom (Relative Font Size: 0.3 - 5.0)
 
     fb.setSpec(bins=60, lower=20, upper=1500,

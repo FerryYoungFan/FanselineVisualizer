@@ -1,8 +1,12 @@
-from FanBlender import FanBlender, __version__
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+from FanBlender import FanBlender, __version__, getPath
 from FanTkImageViewer import ImageViewer
 from LanguagePack import *
 
 import threading, os, pickle, ctypes
+from sys import platform
 import tkinter as tk
 from tkinter import ttk
 import tkinter.messagebox
@@ -436,10 +440,10 @@ def presetAudio(*args):
 def saveConfig():
     vdic = getAllValues()
     try:
-        directory = os.path.dirname("./Source/")
+        directory = os.path.dirname(getPath("Source/"))
         if not os.path.exists(directory):
             os.makedirs(directory)
-        with open('./Source/config.pickle', 'wb') as handle:
+        with open(getPath("Source/config.pickle"), "wb") as handle:
             pickle.dump(vdic, handle, protocol=pickle.HIGHEST_PROTOCOL)
     except:
         clog(lang["Error! Cannot save config!"])
@@ -447,7 +451,7 @@ def saveConfig():
 
 def loadConfig():
     try:
-        with open('./Source/config.pickle', 'rb') as handle:
+        with open(getPath("Source/config.pickle"), "rb") as handle:
             vdic = pickle.load(handle)
     except:
         print("No config")
@@ -566,7 +570,7 @@ def loadConfig():
 
 def saveLanguage():
     global lang, lang_code
-    with open('./Source/language.pickle', 'wb') as handle:
+    with open(getPath("Source/language.pickle"), "wb") as handle:
         pickle.dump(lang_code, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
@@ -574,7 +578,7 @@ def loadLanguage():
     global lang, lang_code
     lang_code = "en"
     try:
-        with open('./Source/language.pickle', 'rb') as handle:
+        with open(getPath("Source/language.pickle"), "rb") as handle:
             lang_code = pickle.load(handle)
     except:
         print("No language config")
@@ -630,8 +634,12 @@ def bindPreview(tk_obj):
 
 if __name__ == '__main__':
     exit_flag = False
-    GUI_WIDTH = 950
-    GUI_HEIGHT = 700
+    if platform == 'darwin':
+        GUI_WIDTH = 1120
+        GUI_HEIGHT = 720
+    else:
+        GUI_WIDTH = 950
+        GUI_HEIGHT = 700
     while not exit_flag:
         exit_flag = True
 
@@ -639,15 +647,15 @@ if __name__ == '__main__':
         loadLanguage()
 
         old_vdic = None
-        tk_image_path = tk.StringVar(value="./Source/fallback.png")
+        tk_image_path = tk.StringVar(value=getPath("Source/fallback.png"))
         tk_sound_path = tk.StringVar()
-        tk_logo_path = tk.StringVar(value="./Source/Logo.png")
+        tk_logo_path = tk.StringVar(value=getPath("Source/Logo.png"))
         tk_bg_path = tk.StringVar(value="")
         tk_output_path = tk.StringVar()
         tk_filename = tk.StringVar(value="output")
 
         tk_text = tk.StringVar()
-        tk_font = tk.StringVar(value="./Source/font.otf")
+        tk_font = tk.StringVar(value=getPath("Source/font.otf"))
         tk_relsize = tk.DoubleVar(value=1.0)
         bindPreview(tk_relsize)
         tk_text_glow = tk.BooleanVar(value=False)
@@ -1053,14 +1061,19 @@ if __name__ == '__main__':
         clearLog()
 
         try:
-            ctypes.windll.shcore.SetProcessDpiAwareness(1)
-            ScaleFactor = ctypes.windll.shcore.GetScaleFactorForDevice(0)
-            root.tk.call('tk', 'scaling', ScaleFactor / 75)  # DPI settings
-            root_view.tk.call('tk', 'scaling', ScaleFactor / 75)
-            root_view.iconphoto(False, tk.PhotoImage(file='./Source/icon-small.png'))
-            root.iconphoto(False, tk.PhotoImage(file='./Source/icon-small.png'))
-        except:
-            pass
+
+            if platform == 'darwin':
+                root.tk.call('tk', 'scaling', 1.0)  # DPI setting
+                root_view.tk.call('tk', 'scaling', 1.0)
+            else:
+                ctypes.windll.shcore.SetProcessDpiAwareness(1)
+                ScaleFactor = ctypes.windll.shcore.GetScaleFactorForDevice(0)
+                root.tk.call('tk', 'scaling', ScaleFactor / 75)
+                root_view.tk.call('tk', 'scaling', ScaleFactor / 75)
+            root_view.iconphoto(False, tk.PhotoImage(file=getPath('Source/icon-small.png')))
+            root.iconphoto(False, tk.PhotoImage(file=getPath('Source/icon-small.png')))
+        except Exception as e:
+            print("Scale Error:", str(e))
 
 
         def disable_event():

@@ -1,5 +1,8 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 """
 Audio Visualizer
+帆室邻音频可视化
 By Twitter @FanKetchup
 https://github.com/FerryYoungFan/FanselineVisualizer
 """
@@ -20,7 +23,7 @@ import imageio
 import imageio_ffmpeg
 import numpy as np
 
-import threading, time, os
+import threading, time, os, sys
 
 
 class blendingThread(threading.Thread):
@@ -115,7 +118,7 @@ class FanBlender:
         self.output_path = None
 
         self.text_bottom = ""
-        self.font = "./Source/font.otf"
+        self.font = getPath("Source/font.otf")
 
         self.frame_width = 540
         self.frame_height = 540
@@ -134,8 +137,8 @@ class FanBlender:
         self.scalar = 1.0
 
         self._debug_bg = False
-        self._temp_audio_path = r"./Temp/temp.wav"
-        self._temp_video_path = r"./Temp/temp.mp4"
+        self._temp_audio_path = getPath("./Temp/temp.wav")
+        self._temp_video_path = getPath("./Temp/temp.mp4")
         self.ensure_dir(self._temp_audio_path)
 
         try:
@@ -186,7 +189,7 @@ class FanBlender:
         self._font_size = int(round(30 / 1080 * self._frame_size * self._relsize))
         self._blur = int(round(2 / 1080 * self._frame_size))
         self._blur_bg = int(round(41 / 1080 * self._frame_size))
-        self._line_thick = int(round(self.linewidth * 4 / 1080 * self._frame_size))
+        self._line_thick = self.linewidth * 4 / 1080 * self._frame_size
         self._yoffset = clip(self.frame_height - self._font_size * 2.1, self.frame_height * 0.95,
                              self.frame_height * 0.95 - self._font_size)
 
@@ -240,7 +243,7 @@ class FanBlender:
             except:
                 return
 
-    def setFilePath(self, image_path=None, bg_path=None, sound_path=None, logo_path=None):
+    def setFilePath(self, image_path="", bg_path="", sound_path="", logo_path=""):
         if image_path is not None:
             if os.path.isfile(image_path):
                 self.image_path = image_path
@@ -274,20 +277,25 @@ class FanBlender:
         else:
             self.logo_path = None
 
-    def setOutputPath(self, output_path=None, filename=None):
-        if filename is None:
+    def setOutputPath(self, output_path="", filename=""):
+        if not filename:
             filename = "Visualize.mp4"
-        if output_path is not None:
+        if output_path:
             self.ensure_dir(os.path.join(output_path, filename))
+            # try:
+            #     self.log(filename)
+            # except Exception as e:
+            #     self.log("Error: This Tkinter only support Ascii encoding!")
+            #     self.log(str(e))
             self.output_path = cvtFileName(os.path.join(output_path, filename), "mp4")
 
-    def setText(self, text="", font=None, relsize=None, text_brt=1.0, text_glow=None):
+    def setText(self, text="", font="", relsize=None, text_brt=1.0, text_glow=None):
         self.text_bottom = text
-        if font is None or (not os.path.exists(font)):
-            if os.path.exists("./Source/font.otf"):
-                font = "./Source/font.otf"
-            elif os.path.exists("./Source/font.ttf"):
-                font = "./Source/font.ttf"
+        if (not font) or (not os.path.exists(font)):
+            if os.path.exists(getPath("Source/font.otf")):
+                font = getPath("Source/font.otf")
+            elif os.path.exists(getPath("Source/font.ttf")):
+                font = getPath("Source/font.ttf")
             else:
                 font = "Arial.ttf"
         if relsize is not None:
@@ -300,8 +308,7 @@ class FanBlender:
         self.bg_blended = False
 
     def setSpec(self, bins=None, lower=None, upper=None, color=None, bright=None, saturation=None, scalar=None,
-                smooth=None, style=None,
-                linewidth=None):
+                smooth=None, style=None, linewidth=None):
         if bins is not None:
             self.bins = int(clip(bins, 2, 250))
 
@@ -333,7 +340,7 @@ class FanBlender:
             self.style = style
 
         if linewidth is not None:
-            self.linewidth = float(clip(linewidth, 0.01, 50))
+            self.linewidth = clip(linewidth, 0.01, 50)
 
         self._amplify = self.setAmplify()
         self.visualizer = None
@@ -392,15 +399,15 @@ class FanBlender:
 
         if not image:
             try:
-                image = Image.open("./Source/fallback.png").convert('RGBA')
+                image = Image.open(getPath("Source/fallback.png")).convert('RGBA')
             except:
-                self.fileError("./Source/fallback.png").convert('RGBA')
+                self.fileError(getPath("Source/fallback.png"))
 
         if not image:
             try:
-                image = Image.open("./Source/fallback.jpg").convert('RGBA')
+                image = Image.open(getPath("Source/fallback.jpg")).convert('RGBA')
             except:
-                self.fileError("./Source/fallback.jpg")
+                self.fileError(getPath("Source/fallback.jpg"))
                 image = Image.new('RGB', (512, 512), (127, 127, 127))
 
         self.log("Blending Background...")
@@ -488,6 +495,11 @@ class FanBlender:
             return
 
     def runBlending(self):
+        try:
+            self.log(self.output_path)
+        except:
+            self.log("Error, wait, what?!")
+        self.log("hi,hello,there")
         if self.isRunning:
             return
         self.removeTemp()
@@ -541,7 +553,8 @@ class FanBlender:
             thread_stack[ith].join()
         self.writer.close()
         if self.isRunning:
-            self.log("Output path: " + self.output_path)
+            self.log("Output path: ")
+            self.log(str(self.output_path))
             self.log("Combining Videos...")
             audio_br = str(self.audio_bit_rate) + "k"
             if self.bg_mode < 0:
@@ -590,17 +603,26 @@ def clip(value, low_in=0.0, up_in=0.0):
     return value
 
 
+def getPath(fileName):  # for different operating systems
+    path = os.path.join(os.path.dirname(sys.argv[0]), fileName)
+    return path
+
+
 if __name__ == '__main__':
     # Example of Using FanBlender
 
     fb = FanBlender()  # Initialize Blender
-    fb.setFilePath(image_path=r"./Source/fallback.png",
-                   bg_path=r"./Source/background.jpg",
-                   sound_path=r"./Source/test.mp3",
-                   logo_path=r"./Source/logo.png")  # Set File Path
-    fb.setOutputPath(output_path=r"./Output",
+
+    fb.setFilePath(image_path=getPath("Source/fallback.png"),
+                   bg_path=getPath("Source/background.jpg"),
+                   sound_path=getPath("Source/test.mp3"),
+                   logo_path=getPath("Source/logo.png"))  # Set File Path
+
+    fb.setOutputPath(output_path=getPath("./Output"),
                      filename="test.mp4")  # Set Output Path
-    fb.setText(text="Your Text Here", font="./Source/font.otf", relsize=1.0, text_brt=0.8, text_glow=True)
+
+    fb.setText(text="Your Text Here", font=getPath("Source/font.otf"),
+               relsize=1.0, text_brt=0.8, text_glow=True)
     # Set Text at the Bottom (Relative Font Size: 0.3 - 5.0)
 
     fb.setSpec(bins=60, lower=20, upper=1500,

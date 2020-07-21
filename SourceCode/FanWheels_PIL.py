@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 from PIL import Image, ImageFilter, ImageOps, ImageDraw, ImageEnhance, ImageChops, ImageFont
 
 
@@ -122,8 +125,6 @@ def glowText(img, text=None, font_size=35, font_set=None, bright=1.0, blur=2, lo
         w, h = draw.textsize(text, font=_font)
     else:
         w, h = 0, 0
-    print("yoff", yoffset)
-    print("fsize", font_size)
     xoffset = 0
     if logo is not None:
         lg_w, lg_h = logo.size
@@ -137,14 +138,13 @@ def glowText(img, text=None, font_size=35, font_set=None, bright=1.0, blur=2, lo
             xoffset = lg_nw
         w = w + xoffset
         _x_logo = int(round((width - w) / 2))
-        _y_logo = int(round(yoffset*ratio-font_size*(hoffset-1)/2))
-        print("paste it!")
+        _y_logo = int(round(yoffset * ratio - font_size * (hoffset - 1) / 2))
         try:
             canvas.paste(logo, (_x_logo, _y_logo), logo)
         except:
             canvas.paste(logo, (_x_logo, _y_logo))
     if text:
-        draw.text(((width - w) / 2 + xoffset, yoffset*ratio), text, fill=(brt, brt, brt, 255),font=_font)
+        draw.text(((width - w) / 2 + xoffset, yoffset * ratio), text, fill=(brt, brt, brt, 255), font=_font)
     if use_glow:
         mask_blur = canvas.split()[-1]
         mask_blur = mask_blur.filter(ImageFilter.GaussianBlur(radius=blur * 2))

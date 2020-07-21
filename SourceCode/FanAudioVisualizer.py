@@ -147,7 +147,7 @@ def getColor(bins, index, color_mode="color4x", bright=1.0, sat=0.8):
 
 
 class AudioVisualizer:
-    def __init__(self, img, rad_min, rad_max, line_thick, blur=5, style=0):
+    def __init__(self, img, rad_min, rad_max, line_thick=1.0, blur=5, style=0):
         self.background = img.copy()
         self.width, self.height = self.background.size
         self.mdpx = self.width / 2
