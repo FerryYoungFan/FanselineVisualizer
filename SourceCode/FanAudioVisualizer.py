@@ -43,7 +43,7 @@ class AudioAnalyzer:
             if win_up >= xf.shape[0]:
                 win_up = xf.shape[0] - 1
             freq_array[i] = np.sum(yf_fq[win_low:win_up])
-        return loopAverage(freq_array)
+        return freq_array
 
     def getSampleRate(self):
         return self.sample_rate
@@ -143,7 +143,15 @@ def getColor(bins, index, color_mode="color4x", bright=1.0, sat=0.8):
         return hsv_to_rgb(getCycleHue(42, 147, bins, index, 4), sat, brt) + (255,)
     if color_mode == "blue-purple":
         return hsv_to_rgb(getCycleHue(208, 313, bins, index, 4), sat, brt) + (255,)
-    return hsv_to_rgb(0, 0, brt) + (255,)
+
+    try:
+        clist = tuple(color_mode)
+        if len(clist) == 3:
+            return clist + (255,)
+        else:
+            return clist
+    except:
+        return hsv_to_rgb(0, 0, brt) + (255,)
 
 
 class AudioVisualizer:
@@ -188,6 +196,10 @@ class AudioVisualizer:
         draw = ImageDraw.Draw(canvas)
 
         line_graph_prev = None
+
+        if self.style in [0, 1, 2, 3, 4, 5, 6, 7]:
+            hist = loopAverage(hist)
+
         for i in range(bins):
             color = getColor(bins, i, color_mode, bright, saturation)
             if self.style == 1:
@@ -403,9 +415,7 @@ class AudioVisualizer:
         output.paste(canvas, (0, 0), canvas)
         if rotate != 0 and fg_img is not None and bg_mode > -2 and (not bg_mode == 2):
             angle = -(rotate * frame_pt / fps / 60) * 360
-            mask = fg_img.split()[-1]
-            rotate_img = fg_img.convert("RGB").rotate(angle, resample=Image.BICUBIC)
-            rotate_img.putalpha(mask)
+            rotate_img = fg_img.rotate(angle, resample=Image.BICUBIC)
             output = pasteMiddle(rotate_img, output, glow=False, blur=0, bright=1)
 
         if rotate == 0 and fg_img is not None and bg_mode > -2 and (not bg_mode == 2):

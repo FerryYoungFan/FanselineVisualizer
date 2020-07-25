@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from FanBlender import FanBlender, getPath
+from FanBlender import FanBlender
 
 """
 Audio Visualizer - Example
@@ -13,17 +13,24 @@ if __name__ == '__main__':
 
     fb = FanBlender()  # Initialize Blender
 
-    fb.setFilePath(image_path=getPath("Source/fallback.png"),
-                   bg_path=getPath("Source/background.jpg"),
-                   sound_path=getPath("Source/test.mp3"),
-                   logo_path=getPath("Source/logo.png"))  # Set File Path
+    fb.setFilePath(image_path="Source/fallback.png",
+                   bg_path="Source/background.jpg",
+                   sound_path="Source/test.mp3",
+                   logo_path="Source/logo.png")
+    """
+    Set file path.
+    You can also use RGBA color as path to generate a monocolor image: e.g. image_path=(255,0,0,255)
+    """
 
-    fb.setOutputPath(output_path=getPath("./Output"),
+    fb.setOutputPath(output_path="./Output",
                      filename="test.mp4")  # Set Output Path
 
-    fb.setText(text="Your Text Here", font=getPath("Source/font.otf"),
-               relsize=1.0, text_brt=0.8, text_glow=True)
-    # Set Text at the Bottom (Relative Font Size: 0.3 - 5.0)
+    fb.setText(text="Your Text Here", font="Source/font.otf",
+               relsize=1.0, text_color=(255, 255, 255, 255), text_glow=True)
+    """
+    Set text at the Bottom (Relative Font Size: 0.3 - 5.0)
+    Text color format: RGBA
+    """
 
     fb.setSpec(bins=60, lower=20, upper=1500,
                color=fb.color_dic["Gradient: Green - Blue"], bright=0.6, saturation=0.8,
@@ -52,6 +59,8 @@ if __name__ == '__main__':
     bg_mode: 0: Normal Background, 2: Background Only, -1: Transparent Background, -2: Spectrum Only
     rotate: Rotate Foreground (r/min, Positive for Clockwise)
     """
-    fb.previewBackground(localViewer=True)  # Preview before blending
     fb.setAudioInfo(normal=False, br_kbps=192)  # Audio info
+
+    fb.previewBackground(localViewer=True)  # Preview before blending
+
     fb.runBlending()  # Blend the Video

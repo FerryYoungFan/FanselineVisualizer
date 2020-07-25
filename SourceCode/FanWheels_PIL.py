@@ -2,6 +2,52 @@
 # -*- coding: utf-8 -*-
 
 from PIL import Image, ImageFilter, ImageOps, ImageDraw, ImageEnhance, ImageChops, ImageFont
+import os, sys
+
+
+def getPath(fileName):  # for different operating systems
+    path = os.path.join(os.path.dirname(sys.argv[0]), fileName)
+    return path
+
+
+def imageOrColor(path, mode):
+    if isinstance(path, str):
+        try:
+            img = Image.open(getPath(path)).convert(mode)
+            if img is not None:
+                return img
+            else:
+                raise Exception("Can not open image")
+        except:
+            return None
+    if isinstance(path, tuple):
+        try:
+            if mode == "RGB":
+                img = Image.new(mode, (512, 512), path[:3])
+            else:
+                img = Image.new(mode, (512, 512), path[:4])
+            if img is not None:
+                return img
+            else:
+                raise Exception("Can not generate image")
+        except:
+            return None
+    return None
+
+
+def openImage(path, mode="RGBA", fallbacks=None):
+    img = imageOrColor(path, mode)
+    if img is None and isinstance(fallbacks, list):
+        for fallback in fallbacks:
+            if fallback is None:
+                return None
+            img = imageOrColor(fallback, mode)
+            if img is not None:
+                return img
+    else:
+        return img
+    img = Image.new('RGB', (512, 512), (0, 0, 0))
+    return img
 
 
 def cropToCenter(img):
@@ -100,13 +146,8 @@ def pasteMiddle(fg, bg, glow=False, blur=2, bright=1):
     return bg
 
 
-def glowText(img, text=None, font_size=35, font_set=None, bright=1.0, blur=2, logo=None, use_glow=True, yoffset=0):
-    brt = int(round(bright * 255))
-    if brt > 255:
-        brt = 255
-    elif brt < 0:
-        brt = 0
-
+def glowText(img, text=None, font_size=35, font_set=None, color=(255, 255, 255, 255), blur=2, logo=None, use_glow=True,
+             yoffset=0):
     width, height = img.size
     ratio = 2
     width = width * ratio
@@ -115,11 +156,17 @@ def glowText(img, text=None, font_size=35, font_set=None, bright=1.0, blur=2, lo
     blur = blur * ratio
 
     if font_set is None:
-        _font = ImageFont.truetype("Arial.ttf", font_size)
+        _font = ImageFont.truetype("arial.ttf", font_size)
     else:
-        _font = ImageFont.truetype(font_set, font_size)
+        _font = "arial.ttf"
+        for font_i in [font_set, getPath("Source/font.otf"), getPath("Source/font.otf"), "arial.ttf"]:
+            try:
+                _font = ImageFont.truetype(font_i, font_size)
+                break
+            except:
+                print("Cannot Use Font: {0}".format(font_i))
 
-    canvas = Image.new('RGBA', (width, height), (brt, brt, brt, 0))
+    canvas = Image.new('RGBA', (width, height), color[:-1] + (0,))
     draw = ImageDraw.Draw(canvas)
     if text:
         w, h = draw.textsize(text, font=_font)
@@ -144,7 +191,7 @@ def glowText(img, text=None, font_size=35, font_set=None, bright=1.0, blur=2, lo
         except:
             canvas.paste(logo, (_x_logo, _y_logo))
     if text:
-        draw.text(((width - w) / 2 + xoffset, yoffset * ratio), text, fill=(brt, brt, brt, 255), font=_font)
+        draw.text(((width - w) / 2 + xoffset, yoffset * ratio), text, fill=color, font=_font)
     if use_glow:
         mask_blur = canvas.split()[-1]
         mask_blur = mask_blur.filter(ImageFilter.GaussianBlur(radius=blur * 2))

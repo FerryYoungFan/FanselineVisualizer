@@ -1,1094 +1,493 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from FanBlender import FanBlender, __version__, getPath
-from FanTkImageViewer import ImageViewer
+from PIL import Image
+from QtViewer import PhotoViewer, ImageSelectWindow
+from QtWindows import *
 from LanguagePack import *
-
-import threading, os, pickle, ctypes
-from sys import platform
-import tkinter as tk
-from tkinter import ttk
-import tkinter.messagebox
-from tkinter.filedialog import askopenfilename
-from tkinter.filedialog import askdirectory
-from tkinter import scrolledtext
-
-"""
-Audio Visualizer - GUI
-By Twitter @FanKetchup
-https://github.com/FerryYoungFan/FanselineVisualizer
-"""
-
-# GUI Language
-lang = lang_en
-lang_code = "en"
-
-
-# lang = lang_cn_s
-
-def clog(content="", insertloc='end'):
-    global scr
-    scr.configure(state='normal')
-    scr.insert(insertloc, content)
-    scr.configure(state='disable')
-    scr.see("end")
-
-
-def clearLog():
-    global scr
-    scr.configure(state='normal')
-    scr.delete('1.0', tk.END)
-    clog("*" * 35 + " " + lang["Welcome to use"] + " " + lang["Fanseline Audio Visualizer"] + "!" \
-         + " " + "*" * 35 + "\n\n")
-    clog(lang["Project Website: "] + "https://github.com/FerryYoungFan/FanselineVisualizer" + "\n\n")
+from FanBlender import FanBlender, getPath, __version__
+import time, pickle
 
 
 class InfoBridge:
-    def __init__(self):
-        pass
+    def __init__(self, parent):
+        self.parent = parent
+        self.value = 0
+        self.total = 100
+        self.img_cache = None
 
     def log(self, content=""):
-        clog(content + "\n")
+        pass
 
     def progressbar(self, value, total):
-        global progress
-        progress["value"] = (100 * value / total)
+        self.value = value
+        self.total = total
 
     def freeze(self, flag=True):
-        global isRunning
         if flag:
-            fg = "disabled"
-            self.progressbar(0, 100)
-            btn_blend["text"] = lang["Stop Blending"]
-            isRunning = True
-            root.title(lang["Fanseline Audio Visualizer"] + " - V." + __version__ + " " + lang["(Running)"])
+            self.parent.setWindowTitle(self.parent.windowName + " " + self.parent.lang["(Running...)"])
+            self.parent.blendWindow.freezeWindow(True)
         else:
-            fg = "normal"
-            self.progressbar(0, 100)
-            btn_blend["text"] = lang["Blend & Export"]
-            isRunning = False
-            root.title(lang["Fanseline Audio Visualizer"] + " - V." + __version__)
-        elem = [entry_audio, btn_audio, entry_fname, btn_output, entry_img, btn_img, entry_logo, btn_logo,
-                entry_text, entry_font, btn_font, entry_width, entry_height, entry_fps, entry_brv, btn_autob,
-                entry_low, entry_up, entry_bins, entry_scalar, list_color, list_bra, check_normal, list_preseta,
-                list_presetv, entry_output, label_mp4, label_textplz, label_font, label_size, label_mul,
-                label_fps, label_brv, label_range, label_to, label_hz, label_bins, label_scalar, label_color,
-                label_bra, label_kbps, label_preseta, label_presetv, list_lang, label_lang, label_smooth, list_smooth,
-                entry_bg, btn_bg, entry_relsize, check_use_glow, label_bright, entry_bright, label_bg_mode,
-                list_bg_mode, label_style, list_style, label_linewidth, entry_linewidth, entry_rotate, label_rotate,
-                label_saturation, entry_saturation, label_text_brt, entry_text_brt, check_text_glow]
-        for el in elem:
-            el["state"] = fg
-
-        if not flag:
-            list_color["state"] = "readonly"
-            list_preseta["state"] = "readonly"
-            list_presetv["state"] = "readonly"
-            list_lang["state"] = "readonly"
-            list_bg_mode["state"] = "readonly"
-            list_style["state"] = "readonly"
-            root_view.withdraw()
+            self.parent.setWindowTitle(self.parent.windowName)
+            self.parent.blendWindow.freezeWindow(False)
+            self.parent.isRunning = False
 
     def realTime(self, img):
-        global frame2
-        if frame2.winfo_viewable():
-            frame2.imshow(img)
+        self.img_cache = img
+
+    def audioWarning(self):
+        self.parent.error_log = 1
 
     def ffmpegWarning(self):
-        tkinter.messagebox.showinfo(lang["Notice"], lang["FFMPEG not found, please install FFMPEG!"])
+        self.parent.error_log = 2
 
 
-img_format_dict = "*.jpg *.jpeg *.png *.gif *.bmp *.ico *.dib *.webp *.tiff *.tga"
+class MainWindow(QtWidgets.QWidget):
+    def __init__(self, lang_in, vdic_in, lang_code_in, first_run_in):
+        super(MainWindow, self).__init__()
+        self.lang = lang_in
+        self.lang_code = lang_code_in
+        self.first_run = first_run_in
+        self.windowName = self.lang["Fanseline Visualizer"] + " - V" + __version__
+        self.setWindowTitle(self.windowName)
+        setWindowIcons(self)
 
+        self.fb = FanBlender()
+        self.infoBridge = InfoBridge(self)
+        self.fb.setConsole(self.infoBridge)
+        self.vdic = vdic_in
+        self.vdic_stack = []
 
-def selectImage():
-    try:
-        global tk_image_path
-        pathread = askopenfilename(
-            filetypes=[(lang["Image files"], img_format_dict), (lang["All files"], "*.*")])
-        if not pathread or not os.path.exists(pathread):
-            return
+        self.audio_formats = " (*.mp3;*.wav;*.ogg;*.aac;*.flac;*.ape;*.m4a;*.m4r;*.wma;*.mp2;*.mmf);;"
+        self.audio_formats_arr = getFormats(self.audio_formats)
+        self.video_formats = " (*.mp4;*.wmv;*.avi;*.flv;*.mov;*.mkv;*.rm;*.rmvb);;"
+        self.video_formats_arr = getFormats(self.video_formats)
+        self.image_formats = " (*.jpg;*.jpeg;*.png;*.gif;*.bmp;*.ico;*.dib;*.webp;*.tiff;*.tga);;"
+        self.image_formats_arr = getFormats(self.image_formats)
+
+        left = QtWidgets.QFrame(self)
+        left.setStyleSheet(viewerStyle)
+        VBlayout_l = QtWidgets.QVBoxLayout(left)
+        self.viewer = PhotoViewer(self)
+        VBlayout_l.addWidget(self.viewer)
+        VBlayout_l.setSpacing(0)
+        VBlayout_l.setContentsMargins(0, 0, 0, 0)
+
+        self.mainMenu = MainMenu(self)
+        self.imageSelector = ImageSelectWindow(self)
+        self.audioSetting = AudioSettingWindow(self)
+        self.videoSetting = VideoSettingWindow(self)
+        self.textWindow = TextWindow(self)
+        self.imageSetting = ImageSettingWindow(self)
+        self.sepctrumColor = SpectrumColorWindow(self)
+        self.spectrumStyle = SpectrumStyleWindow(self)
+        self.blendWindow = BlendWindow(self)
+        self.aboutWindow = AboutWindow(self)
+
+        right = QtWidgets.QFrame(self)
+        VBlayout_r = QtWidgets.QVBoxLayout(right)
+        VBlayout_r.setAlignment(QtCore.Qt.AlignTop)
+        VBlayout_r.addWidget(self.mainMenu)
+        VBlayout_r.addWidget(self.imageSelector)
+        VBlayout_r.addWidget(self.audioSetting)
+        VBlayout_r.addWidget(self.videoSetting)
+        VBlayout_r.addWidget(self.textWindow)
+        VBlayout_r.addWidget(self.imageSetting)
+        VBlayout_r.addWidget(self.sepctrumColor)
+        VBlayout_r.addWidget(self.spectrumStyle)
+        VBlayout_r.addWidget(self.blendWindow)
+        VBlayout_r.addWidget(self.aboutWindow)
+
+        mainBox = QtWidgets.QHBoxLayout(self)
+        mainBox.setSpacing(0)
+        mainBox.setContentsMargins(5, 5, 0, 5)
+
+        splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
+        QtWidgets.QApplication.setStyle(QtWidgets.QStyleFactory.create('Cleanlooks'))
+        splitter.addWidget(left)
+        splitter.addWidget(right)
+        splitter.setStretchFactor(0, 1)
+        splitter.setStretchFactor(1, -1)
+        splitter.setSizes([1, 330])
+        mainBox.addWidget(splitter)
+
+        self.setStyleSheet(stylepack)
+        self.setAcceptDrops(True)
+        self.canDrop = True
+
+        self.resetLang = False
+        global first_run, reset_lang
+        if first_run or reset_lang:
+            self.aboutWindow.show()
+            first_run = False
         else:
-            tk_image_path.set(pathread)
-            entry_img.xview("end")
-            clog(lang["Foreground Selected: "])
-            clog(pathread + '\n')
-            fastPreview()
-    except:
-        return
+            # self.aboutWindow.show()
+            # self.blendWindow.show()
+            self.mainMenu.show()
 
+        self.timer = QtCore.QTimer(self)
+        self.timer_ffmpeg = QtCore.QTimer(self)
+        self.timer_ffmpeg.timeout.connect(self.ffmpegCheck)
+        self.timer_ffmpeg.start(1000)
+        self.error_log = 0
+        self.isRunning = False
+        self.stopWatch = time.time()
+        self.time_cache = ""
 
-def selectLogo():
-    try:
-        global tk_logo_path
-        pathread = askopenfilename(
-            filetypes=[(lang["Image files"], img_format_dict), (lang["All files"], "*.*")])
-        if not pathread or not os.path.exists(pathread):
-            return
+    def ffmpegCheck(self):
+        if not self.fb.ffmpegCheck():
+            showInfo(self, self.lang["Notice"], self.lang["FFMPEG not found, please install FFMPEG!"])
+        self.timer_ffmpeg.disconnect()
+        self.timer_ffmpeg.stop()
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls:
+            event.accept()
         else:
-            tk_logo_path.set(pathread)
-            entry_logo.xview("end")
-            clog(lang["Logo Selected: "])
-            clog(pathread + '\n')
-            fastPreview()
-    except:
-        return
+            event.ignore()
 
+    def dropEvent(self, event):
+        for url in event.mimeData().urls():
+            self.fileEvent(url.toLocalFile())
+            break
 
-def selectBG():
-    try:
-        global tk_bg_path
-        pathread = askopenfilename(
-            filetypes=[(lang["Image files"], img_format_dict), (lang["All files"], "*.*")])
-        if not pathread or not os.path.exists(pathread):
-            return
-        else:
-            tk_bg_path.set(pathread)
-            entry_bg.xview("end")
-            clog(lang["Background Selected: "])
-            clog(pathread + '\n')
-            fastPreview()
-    except:
-        return
-
-
-def selectAudio():
-    try:
-        global tk_sound_path, tk_output_path, tk_filename
-        pathread = askopenfilename(
-            filetypes=[(lang["Audio files"], "*.mp3 *.wav *.ogg *.aac *.flac *.ape *.m4a *.m4r *.wma *.mp2 *.mmf"),
-                       (lang["Video files"], "*.mp4 *.wmv *.avi *.flv *.mov *.mkv *.rm *.rmvb"),
-                       (lang["All files"], "*.*")])
-        if not pathread or not os.path.exists(pathread):
-            return
-        else:
-            tk_sound_path.set(pathread)
-            entry_audio.xview("end")
-            vdic = getAllValues()
-            if vdic["output_path"] is None:
-                tk_output_path.set(os.path.dirname(os.path.realpath(pathread)).replace("\\", "/") + "/")
-                entry_output.xview("end")
-            new_name = (os.path.splitext(pathread)[0].split("/")[-1]) + lang["_Visualize"]
-            tk_filename.set(new_name)
-            entry_fname.xview("end")
-            clog(lang["Audio Selected: "])
-            clog(tk_sound_path.get() + '\n')
-    except:
-        return
-
-
-def selectOutput():
-    try:
-        global tk_output_path
-        pathexport = askdirectory()
-        pathexport = pathexport + '/'
-        if not pathexport or pathexport == "/":
-            return
-        else:
-            tk_output_path.set(pathexport)
-            entry_output.xview("end")
-            clog(lang["Output Path Selected: "])
-            clog(tk_output_path.get() + '\n')
-    except:
-        return
-
-
-def selectFont():
-    global tk_font, tk_text
-    try:
-        pathread = askopenfilename(filetypes=[(lang["Font files"], "*.ttf *.otf"), (lang["All files"], "*.*")])
-        if not pathread:
-            return
-        else:
-            tk_font.set(pathread)
-            entry_font.xview("end")
-            clog(lang["Font Selected: "])
-            clog(pathread + '\n')
-            fastPreview()
-    except:
-        return
-
-
-def getAllValues():
-    global tk_image_path, tk_sound_path, tk_logo_path, tk_output_path, tk_filename, \
-        tk_text, tk_font, tk_bins, tk_fq_low, tk_fq_high, color_dic, list_color, tk_scalar, \
-        tk_width, tk_height, tk_fps, tk_br_video, tk_br_audio, tk_audio_normal, tk_smooth, \
-        tk_bg_path, tk_bright, tk_blur_bg, tk_use_glow, tk_relsize, tk_bg_mode, bg_mode_dic, \
-        tk_style, tk_linewidth, style_dic, tk_rotate, tk_saturation, tk_text_brt, tk_text_glow
-
-    def checkStr(strtk):
-        if strtk.get():
-            return strtk.get()
-        else:
-            return None
-
-    def checkFile(strtk):
-        path = checkStr(strtk)
-        if path is not None:
-            if os.path.exists(path):
-                return path
-        return None
-
-    def checkInt(inttk):
-
-        try:
-            num = float(inttk.get())
-        except:
-            return None
-        else:
-            return int(round(num))
-
-    def checkFloat(floattk):
-        try:
-            num = float(floattk.get())
-        except:
-            return None
-        else:
-            return num
-
-    if checkStr(tk_filename) is not None:
-        fname = checkStr(tk_filename) + ".mp4"
-    else:
-        fname = None
-
-    param_dict = {
-        "image_path": checkFile(tk_image_path),
-        "bg_path": checkFile(tk_bg_path),
-        "sound_path": checkFile(tk_sound_path),
-        "logo_path": checkFile(tk_logo_path),
-        "output_path": checkStr(tk_output_path),
-        "filename": fname,
-        "text": checkStr(tk_text),
-        "font": checkStr(tk_font),
-        "text_brt": checkFloat(tk_text_brt),
-
-        "bins": checkInt(tk_bins),
-        "lower": checkInt(tk_fq_low),
-        "upper": checkInt(tk_fq_high),
-        "color": color_dic[checkStr(list_color)],
-        "scalar": checkFloat(tk_scalar),
-        "smooth": checkInt(tk_smooth),
-        "bright": checkFloat(tk_bright),
-        "saturation": checkFloat(tk_saturation),
-
-        "blur_bg": bg_mode_dic[checkStr(tk_bg_mode)][0],
-        "bg_mode": bg_mode_dic[checkStr(tk_bg_mode)][1],
-        "use_glow": tk_use_glow.get(),
-        "text_glow": tk_text_glow.get(),
-        "relsize": checkFloat(tk_relsize),
-
-        "width": checkInt(tk_width),
-        "height": checkInt(tk_height),
-        "fps": checkFloat(tk_fps),
-        "br_Mbps": checkFloat(tk_br_video),
-
-        "normal": tk_audio_normal.get(),
-        "br_kbps": checkInt(tk_br_audio),
-
-        "style": style_dic[checkStr(tk_style)],
-        "linewidth": checkFloat(tk_linewidth),
-        "rotate": checkFloat(tk_rotate),
-
-    }
-    return param_dict
-
-
-def dict2tuple(dict_input):
-    keys = []
-    for key in dict_input.keys():
-        keys.append(key)
-    return tuple(keys)
-
-
-def autoBitrate():
-    vdic = getAllValues()
-    global tk_br_video
-    if vdic["width"] is not None and vdic["height"] is not None and vdic["fps"] is not None:
-        brv = getDefaultBR(vdic["width"], vdic["height"], vdic["fps"], 4)
-        tk_br_video.set(round(brv * 100) / 100)
-
-
-def setBlender(param_dict):
-    global fb
-    fb.setConsole(InfoBridge())
-    fb.setFilePath(image_path=param_dict["image_path"],
-                   bg_path=param_dict["bg_path"],
-                   sound_path=param_dict["sound_path"],
-                   logo_path=param_dict["logo_path"])
-    fb.setOutputPath(output_path=param_dict["output_path"],
-                     filename=param_dict["filename"])
-    fb.setText(text=param_dict["text"], font=param_dict["font"], relsize=param_dict["relsize"],
-               text_brt=param_dict["text_brt"], text_glow=param_dict["text_glow"])
-    fb.setSpec(bins=param_dict["bins"], lower=param_dict["lower"], upper=param_dict["upper"],
-               color=param_dict["color"], bright=param_dict["bright"], saturation=param_dict["saturation"],
-               scalar=param_dict["scalar"], smooth=param_dict["smooth"],
-               style=param_dict["style"], linewidth=param_dict["linewidth"])
-    fb.setVideoInfo(width=param_dict["width"], height=param_dict["height"],
-                    fps=param_dict["fps"], br_Mbps=param_dict["br_Mbps"],
-                    blur_bg=param_dict["blur_bg"], use_glow=param_dict["use_glow"],
-                    bg_mode=param_dict["bg_mode"], rotate=param_dict["rotate"])
-    fb.setAudioInfo(normal=param_dict["normal"], br_kbps=param_dict["br_kbps"])
-
-
-def getDefaultBR(width, height, fps, quality=3):
-    if quality == 5:
-        return 20 * (width * height * fps) / (1920 * 1080 * 30)
-    elif quality == 4:
-        return 12 * (width * height * fps) / (1920 * 1080 * 30)
-    elif quality == 3:
-        return 7 * (width * height * fps) / (1920 * 1080 * 30)
-    elif quality == 2:
-        return 2 * (width * height * fps) / (1920 * 1080 * 30)
-    elif quality == 1:
-        return (width * height * fps) / (1920 * 1080 * 30)
-    elif quality == 0:
-        return 0.5 * (width * height * fps) / (1920 * 1080 * 30)
-    else:
-        return 12 * (width * height * fps) / (1920 * 1080 * 30)
-
-
-def showPreview():
-    global fb
-    if not isRunning:
-        saveConfig()
-        setBlender(getAllValues())
-
-        def _showPreview():
-            global frame2, root_view
-            frame2.imshow(fb.previewBackground())
-            if not frame2.winfo_viewable():
-                root_view.deiconify()
-
-        th_preview = threading.Thread(target=_showPreview)
-        th_preview.setDaemon(True)
-        th_preview.start()
-    else:
-        global root_view
-        if not root_view.winfo_viewable():
-            root_view.deiconify()
-
-
-def legalFileName(fname=""):
-    if not fname:
-        return False
-    illegal_dict = ["/", "\\", ":", "*", "?", "\"", "<", ">", "|"]
-    for char in illegal_dict:
-        if char in fname:
-            return False
-    return True
-
-
-def startBlending():
-    global fb
-    vdic = getAllValues()
-    if vdic["sound_path"] is None:
-        tkinter.messagebox.showinfo(lang["Cannot Blend"], lang["Please select the correct audio file!"])
-        return
-    if vdic["output_path"] is None:
-        tkinter.messagebox.showinfo(lang["Cannot Blend"], lang["Please select the correct output path!"])
-        return
-    if not legalFileName(vdic["filename"]):
-        tkinter.messagebox.showinfo(lang["Cannot Blend"], lang["Please input the corrent file name!"])
-        return
-
-    if not isRunning:
-        setBlender(vdic)
-        if os.path.exists(fb.getOutputPath()):
-            MsgBox = tk.messagebox.askquestion(lang["Notice"], lang["Are you sure to overwrite this file?"])
-            if MsgBox == 'yes':
-                pass
+    def fileEvent(self, path):
+        if self.canDrop:
+            suffix = getFileSuffix(path)[1:].lower()
+            if suffix in self.audio_formats_arr or suffix in self.video_formats_arr:
+                self.mainMenu.le_audio_path.setText(path)
+                self.mainMenu.checkFilePath()
+            elif suffix in self.image_formats_arr:
+                self.imageSelector.selector1.fileEvent(path)
             else:
-                return
-        showPreview()
-        clearLog()
+                showInfo(self, self.lang["Notice"], self.lang["Sorry, this file is not supported!"])
+
+    def hideAllMenu(self):
+        self.mainMenu.hide()
+        self.imageSelector.hide()
+        self.audioSetting.hide()
+        self.videoSetting.hide()
+        self.textWindow.hide()
+        self.imageSetting.hide()
+        self.sepctrumColor.hide()
+        self.spectrumStyle.hide()
+        self.blendWindow.hide()
+        self.aboutWindow.hide()
+
+    def setAll(self):
+        self.fb.setFilePath(image_path=self.vdic["image_path"],
+                            bg_path=self.vdic["bg_path"],
+                            sound_path=self.vdic["sound_path"],
+                            logo_path=self.vdic["logo_path"])
+        self.fb.setOutputPath(output_path=self.vdic["output_path"],
+                              filename=self.vdic["filename"])
+        self.fb.setText(text=self.vdic["text"], font=self.vdic["font"], relsize=self.vdic["relsize"],
+                        text_color=self.vdic["text_color"], text_glow=self.vdic["text_glow"])
+        self.fb.setSpec(bins=self.vdic["bins"], lower=self.vdic["lower"], upper=self.vdic["upper"],
+                        color=self.vdic["color"], bright=self.vdic["bright"], saturation=self.vdic["saturation"],
+                        scalar=self.vdic["scalar"], smooth=self.vdic["smooth"],
+                        style=self.vdic["style"], linewidth=self.vdic["linewidth"])
+        self.fb.setVideoInfo(width=self.vdic["width"], height=self.vdic["height"],
+                             fps=self.vdic["fps"], br_Mbps=self.vdic["br_Mbps"],
+                             blur_bg=self.vdic["blur_bg"], use_glow=self.vdic["use_glow"],
+                             bg_mode=self.vdic["bg_mode"], rotate=self.vdic["rotate"])
+        self.fb.setAudioInfo(normal=self.vdic["normal"], br_kbps=self.vdic["br_kbps"])
+
+    def refreshAll(self):
+        self.setBusy(True)
+        self.setAll()
+        self.viewer.imshow(self.fb.previewBackground(localViewer=False, forceRefresh=True))
+        self.setBusy(False)
+
+    def refreshLocal(self):
+        self.setBusy(True)
+        self.fb.setText(text=self.vdic["text"], font=self.vdic["font"], relsize=self.vdic["relsize"],
+                        text_color=self.vdic["text_color"], text_glow=self.vdic["text_glow"])
+        self.fb.setSpec(bins=self.vdic["bins"], lower=self.vdic["lower"], upper=self.vdic["upper"],
+                        color=self.vdic["color"], bright=self.vdic["bright"], saturation=self.vdic["saturation"],
+                        scalar=self.vdic["scalar"], smooth=self.vdic["smooth"],
+                        style=self.vdic["style"], linewidth=self.vdic["linewidth"])
+        self.viewer.imshow(self.fb.previewBackground(localViewer=False))
+        self.setBusy(False)
+
+    def vdicBackup(self):
+        self.vdic_stack.append(self.vdic)
+
+    def setBusy(self, busyFlag):
+        if busyFlag:
+            self.setWindowTitle(" ".join([self.windowName, self.lang["(Computing...)"]]))
+            QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
+        else:
+            QApplication.restoreOverrideCursor()
+            self.setWindowTitle(self.windowName)
+
+    def getBrief(self):
+        brief = "<p>"
+        brief += "<font color=#437BB5>" + self.lang["Output Path:"] + "</font><br/>"
+        if self.vdic["bg_mode"] >= 0:
+            output = self.vdic["output_path"] + convertFileFormat(self.vdic["filename"], "mp4")
+        else:
+            output = self.vdic["output_path"] + convertFileFormat(self.vdic["filename"], "mov")
+        brief += "<u>" + output + "</u><br/><br/>"
+        brief += "<font color=#437BB5>" + self.lang["Audio Path:"] + "</font><br/>"
+        brief += "<u>" + self.vdic["sound_path"] + "</u><br/></p>"
+        brief += "<p>"
+        brief += "<font color=#437BB5>" + self.lang["Video Settings:"] + "</font><br/>"
+        brief += self.lang["Video Size:"] + " " + str(self.vdic["width"]) + "x" + str(self.vdic["height"]) + "<br/>"
+        brief += self.lang["FPS:"] + " " + str(self.vdic["fps"]) + "<br/>"
+        brief += self.lang["Video BR:"] + " " + str(self.vdic["br_Mbps"]) + " (Mbps)<br/>"
+        brief += self.lang["Audio BR:"] + " " + str(self.vdic["br_kbps"]) + " (kbps)<br/>"
+        brief += self.lang["Volume Normalize:"] + " "
+        if self.vdic["normal"]:
+            brief += "<font color=#40874A>" + self.lang["ON"] + "</font>"
+        else:
+            brief += self.lang["OFF"]
+        brief += "<br/>"
+        for key, item in self.imageSetting.items_bg_mode.items():
+            if [self.vdic["blur_bg"], self.vdic["bg_mode"]] == item:
+                brief += self.lang["BG Mode:"] + " " + key
+                break
+
+        brief += "</p>"
+        return brief
+
+    def getIntro(self):
+        intro = "<h4>" + self.lang["Version: "] + "<font color=#9C9642>" + __version__ + "</font></h4>"
+        intro += "{0}<br/>".format(self.lang["Project Website: "])
+        intro += """
+        <a href="https://github.com/FerryYoungFan/FanselineVisualizer">
+        <font color=#437BB5><u> https://github.com/FerryYoungFan/FanselineVisualizer </u></font></a>
+        <br/><br/>
+        """
+        intro += "{0}<br/>".format(self.lang["Support me if you like this application:"])
+        intro += """
+                <a href="https://afdian.net/@Fanseline">
+                <font color=#437BB5><u> https://afdian.net/@Fanseline </u></font></a>
+                <br/><br/>
+                """
+        intro += "{0}<br/>".format(self.lang["About me:"])
+        intro += """
+                    <a href="https://github.com/FerryYoungFan">
+                    <font color=#437BB5><u>GitHub</u></font></a> &nbsp;&nbsp;&nbsp;&nbsp;
+                    <a href="https://twitter.com/FanKetchup">
+                    <font color=#437BB5><u>Twitter</u></font></a> &nbsp;&nbsp;&nbsp;&nbsp;
+                    <a href="https://www.pixiv.net/users/22698030"> 
+                    <font color=#437BB5><u>Pixiv</u></font></a>
+                    <hr>
+                    """
+        intro += "{0}<br/>".format(self.lang["Special thanks to:"])
+        intro += """
+                <a href="https://www.matataki.io/user/526">
+                <font color=#437BB5><u>小岛美奈子</u></font></a> &nbsp;&nbsp;&nbsp;&nbsp;
+                <a href="https://twitter.com/dougiedoggies">
+                <font color=#437BB5><u>Dougie Doggies</u></font></a> &nbsp;&nbsp;&nbsp;&nbsp;
+                <br/>
+                """
+        intro += "{0}<br/>".format(self.lang["... and all people who support me!"])
+        return intro
+
+    def startBlending(self):
+        self.setAll()
         saveConfig()
-        th_blend = threading.Thread(target=fb.runBlending)
+        self.infoBridge = InfoBridge(self)
+        self.fb.setConsole(self.infoBridge)
+        self.error_log = 0
+        self.isRunning = True
+        self.timer.timeout.connect(self.realTimePreview)
+        self.timer.start(200)
+        self.stopWatch = time.time()
+        self.time_cache = ""
+
+        th_blend = threading.Thread(target=self.fb.runBlending)
         th_blend.setDaemon(True)
         th_blend.start()
-    else:
-        MsgBox = tk.messagebox.askquestion(lang["Notice"], lang["Are you sure to stop blending?"])
-        if MsgBox == 'yes':
-            pass
+
+    def stopBlending(self):
+        self.fb.isRunning = False
+        self.error_log = -1
+
+    def realTimePreview(self):
+        info = self.getBrief()
+        if self.infoBridge.total != 0:
+            self.blendWindow.prgbar.setValue(int(self.infoBridge.value / self.infoBridge.total * 1000))
         else:
-            return
-        clog(lang["Stop Blending..."] + "\n")
-        fb.isRunning = False
+            self.blendWindow.prgbar.setValue(0)
+        if self.fb.isRunning or self.isRunning:
+            if self.infoBridge.img_cache is not None:
+                self.viewer.imshow(self.infoBridge.img_cache)
+                self.infoBridge.img_cache = None
+                if self.infoBridge.value > 0:
+                    elapsed = time.time() - self.stopWatch
+                    blended = self.infoBridge.value
+                    togo = self.infoBridge.total - self.infoBridge.value
+                    time_remain = secondToTime(elapsed / blended * togo)
+                    self.time_cache = self.lang["Remaining Time:"] + " " + time_remain + "<br/>"
+
+            if self.time_cache != "":
+                info += "<font color=#437BB5>" + self.lang["Blending:"] + " " + str(
+                    self.infoBridge.value) + " / " + str(self.infoBridge.total) + "</font><br/>"
+                info += self.time_cache
+            else:
+                info += "<font color=#437BB5>" + self.lang["Analyzing Audio..."] + "</font><br/>"
+
+            info += self.lang["Elapsed Time:"] + " " + secondToTime(time.time() - self.stopWatch) + "<br/>"
+
+            if self.infoBridge.value >= self.infoBridge.total:
+                info += self.lang["Compositing Audio..."]
+
+            self.blendWindow.textview.setHtml(info)
+            self.blendWindow.textview.moveCursor(QtGui.QTextCursor.End)
+        else:
+            print("error log:" + str(self.error_log))
+            if self.error_log == -1:
+                info += "<h3><font color=#9C9642>" + self.lang["Blending Aborted!"] + "</font></h3>"
+            elif self.error_log == 1:
+                showInfo(self, self.lang["Notice"], self.lang["Sorry, this audio file is not supported!"])
+                info += "<h3><font color=#B54643>" + self.lang["Blending Aborted!"] + "</font></h3>"
+            elif self.error_log == 2:
+                showInfo(self, self.lang["Notice"], self.lang["FFMPEG not found, please install FFMPEG!"])
+                info += "<h3><font color=#B54643>" + self.lang["Blending Aborted!"] + "</font></h3>"
+            else:
+                info += "<h3><font color=#40874A>" + self.lang["Mission Complete!"] + "</font></h3>"
+
+                self.error_log = 0
+            info += self.lang["Elapsed Time:"] + " " + secondToTime(time.time() - self.stopWatch) + "<br/>"
+            self.blendWindow.textview.setHtml(info)
+            self.blendWindow.textview.moveCursor(QtGui.QTextCursor.End)
+            self.timer.stop()
+            self.timer.disconnect()
+
+    def closeEvent(self, event):
+        global close_app
+        if self.isRunning:
+            showInfo(self, self.lang["Notice"], self.lang["Please stop blending before quit!"])
+            event.ignore()
+        elif self.resetLang:
+            global reset_lang
+            reset_lang = True
+            saveConfig()
+            close_app = False
+            event.accept()
+        else:
+            saveConfig()
+            close_app = True
+            event.accept()
 
 
-def presetVideo(*args):
-    global video_dic, list_presetv, tk_width, tk_height, tk_fps, tk_br_video
-    w, h, fps, brv = video_dic[list_presetv.get()]
-    tk_width.set(w)
-    tk_height.set(h)
-    tk_fps.set(fps)
-    tk_br_video.set(round(brv * 100) / 100)
-    fastPreview()
+def secondToTime(time_sec):
+    hour = int(time_sec // 3600)
+    minute = int((time_sec - hour * 3600) // 60)
+    second = int((time_sec - hour * 3600 - minute * 60) // 1)
+    if hour < 10:
+        hour = "0" + str(hour)
+    if minute < 10:
+        minute = "0" + str(minute)
+    if second < 10:
+        second = "0" + str(second)
+    return str(hour) + ":" + str(minute) + ":" + str(second)
 
 
-def presetAudio(*args):
-    global audio_dic, tk_br_audio, tk_fq_low, tk_fq_high, tk_audio_normal, tk_scalar, tk_smooth
-    bra, low, up, normal, scale, smooth = audio_dic[list_preseta.get()]
-    tk_br_audio.set(bra)
-    tk_fq_low.set(low)
-    tk_fq_high.set(up)
-    tk_audio_normal.set(normal)
-    tk_scalar.set(scale)
-    tk_smooth.set(smooth)
-
-
-def saveConfig():
-    vdic = getAllValues()
-    try:
-        directory = os.path.dirname(getPath("Source/"))
-        if not os.path.exists(directory):
-            os.makedirs(directory)
-        with open(getPath("Source/config.pickle"), "wb") as handle:
-            pickle.dump(vdic, handle, protocol=pickle.HIGHEST_PROTOCOL)
-    except:
-        clog(lang["Error! Cannot save config!"])
+config_path = getPath("FVConfig.fconfig")
+config = None
+lang_code = "en"
+lang = lang_en
+vdic_pre = {
+    "image_path": getPath("Source/fallback.png"),
+    "bg_path": None,
+    "sound_path": None,
+    "logo_path": getPath("Source/logo.png"),
+    "output_path": None,
+    "filename": None,
+    "text": "Fanseline Visualizer",
+    "font": getPath("Source/font.otf"),
+    "relsize": 1.0,
+    "text_color": (255, 255, 255, 255),
+    "text_glow": True,
+    "bins": 48,
+    "lower": 20,
+    "upper": 4000,
+    "color": "color4x",
+    "bright": 0.6,
+    "saturation": 0.5,
+    "scalar": 1.0,
+    "smooth": 2,
+    "style": 0,
+    "linewidth": 1.0,
+    "width": 480,
+    "height": 480,
+    "fps": 30.0,
+    "br_Mbps": 1.0,
+    "blur_bg": True,
+    "use_glow": False,
+    "bg_mode": 0,
+    "rotate": 0,
+    "normal": False,
+    "br_kbps": 320,
+}
+vdic = vdic_pre
+close_app = False
+first_run = True
+reset_lang = False
 
 
 def loadConfig():
+    global config, lang, lang_code, vdic, first_run
     try:
-        with open(getPath("Source/config.pickle"), "rb") as handle:
-            vdic = pickle.load(handle)
+        with open(config_path, "rb") as handle:
+            config = pickle.load(handle)
+            if config["__version__"] != __version__:
+                raise Exception("VersionError")
+            lang_code = config["lang_code"]
+            print(config)
+            first_run = False
     except:
-        print("No config")
-        saveConfig()
-        return
-
-    global tk_image_path, tk_sound_path, tk_logo_path, tk_output_path, tk_filename, \
-        tk_text, tk_font, tk_bins, tk_fq_low, tk_fq_high, color_dic, list_color, tk_scalar, \
-        tk_width, tk_height, tk_fps, tk_br_video, tk_br_audio, tk_audio_normal, tk_smooth, \
-        tk_bg_path, tk_bright, tk_blur_bg, tk_use_glow, tk_relsize, tk_bg_mode, label_mp4, \
-        style_dic, tk_saturation, tk_text_brt, tk_text_glow
-
-    def fileCheck(dicv, tk_value):
-        try:
-            path = vdic[dicv]
-            if path is not None and os.path.exists(path):
-                tk_value.set(path)
-            else:
-                tk_value.set("")
-        except:
-            pass
-
-    def strCheck(dicv, tk_value, trunc=False):
-        try:
-            strv = vdic[dicv]
-            if strv is not None:
-                if not trunc:
-                    tk_value.set(strv)
-                else:
-                    tk_value.set("".join(strv.split(".")[:-1]))
-            else:
-                tk_value.set("")
-        except:
-            pass
-
-    def numCheck(dicv, tk_value):
-        try:
-            num = vdic[dicv]
-            if num is not None:
-                tk_value.set(num)
-            else:
-                tk_value.set(0)
-        except:
-            pass
-
-    fileCheck("image_path", tk_image_path)
-    fileCheck("sound_path", tk_sound_path)
-    fileCheck("bg_path", tk_bg_path)
-    fileCheck("logo_path", tk_logo_path)
-    fileCheck("output_path", tk_output_path)
-    strCheck("filename", tk_filename, True)
-    strCheck("text", tk_text)
-    fileCheck("font", tk_font)
-    numCheck("bins", tk_bins)
-    numCheck("lower", tk_fq_low)
-    numCheck("upper", tk_fq_high)
-    numCheck("scalar", tk_scalar)
-    numCheck("width", tk_width)
-    numCheck("height", tk_height)
-    numCheck("fps", tk_fps)
-    numCheck("br_Mbps", tk_br_video)
-    numCheck("br_kbps", tk_br_audio)
-    numCheck("normal", tk_audio_normal)
-    numCheck("bright", tk_bright)
-    numCheck("saturation", tk_saturation)
-    numCheck("blur_bg", tk_blur_bg)
-    numCheck("use_glow", tk_use_glow)
-    numCheck("smooth", tk_smooth)
-    numCheck("relsize", tk_relsize)
-    numCheck("text_brt", tk_text_brt)
-    numCheck("linewidth", tk_linewidth)
-    numCheck("rotate", tk_rotate)
-    numCheck("text_glow", tk_text_glow)
-
-    try:
-        if vdic["color"] is not None:
-            color_prev = None
-            for cname, ccode in color_dic.items():
-                if ccode == vdic["color"]:
-                    color_prev = cname
-                    break
-            if color_prev is not None:
-                tk_color.set(color_prev)
-    except:
-        pass
-
-    try:
-        if vdic["blur_bg"] is not None and vdic["bg_mode"] is not None:
-            if vdic["bg_mode"] >= 0:
-                label_mp4["text"] = ".mp4"
-            else:
-                label_mp4["text"] = ".mov"
-            for bname, values in bg_mode_dic.items():
-                if values == [vdic["blur_bg"], vdic["bg_mode"]]:
-                    tk_bg_mode.set(bname)
-    except:
-        pass
-
-    try:
-        if vdic["style"] is not None:
-            for sname, scode in style_dic.items():
-                if scode == vdic["style"]:
-                    tk_style.set(sname)
-                    break
-    except:
-        pass
-
-    entry_img.xview("end")
-    entry_logo.xview("end")
-    entry_bg.xview("end")
-    entry_fname.xview("end")
-    entry_audio.xview("end")
-    entry_output.xview("end")
-    entry_font.xview("end")
-
-
-def saveLanguage():
-    global lang, lang_code
-    with open(getPath("Source/language.pickle"), "wb") as handle:
-        pickle.dump(lang_code, handle, protocol=pickle.HIGHEST_PROTOCOL)
-
-
-def loadLanguage():
-    global lang, lang_code
-    lang_code = "en"
-    try:
-        with open(getPath("Source/language.pickle"), "rb") as handle:
-            lang_code = pickle.load(handle)
-    except:
-        print("No language config")
-
+        print("no config")
+        return False
+    vdic = config["vdic"]
     if lang_code == "cn_s":
         lang = lang_cn_s
     else:
         lang = lang_en
 
 
-def resetGUI(*args):
-    global lang_code, exit_flag, root, list_lang
-    # lang_code = lc
-    if list_lang.get() == "简体中文":
-        lang_code = "cn_s"
-    else:
-        lang_code = "en"
-    saveConfig()
-    saveLanguage()
-    exit_flag = False
-    root.destroy()
-
-
-def setFileType(*args):
-    global label_mp4, bg_mode_dic, tk_bg_mode
+def saveConfig():
+    global config, lang, lang_code, vdic, vdic_pre, appMainWindow
     try:
-        if bg_mode_dic[tk_bg_mode.get()][1] >= 0:
-            label_mp4["text"] = ".mp4"
-        else:
-            label_mp4["text"] = ".mov"
+        lang_code = appMainWindow.lang_code
+        vdic = appMainWindow.vdic
     except:
-        pass
+        vdic = vdic_pre
+        lang_code = "en"
 
-
-def fastPreview(*args):
-    global frame2, old_vdic
-    if frame2 and frame2.winfo_viewable():
-        vdic = getAllValues()
-        if vdic != old_vdic:
-            showPreview()
-
-
-def shortCut(event):
-    if event.keysym == "F5":
-        startBlending()
-    if event.keysym == "F4":
-        showPreview()
-
-
-def bindPreview(tk_obj):
-    tk_obj.trace("w", lambda name, index, mode=tk_obj: fastPreview())
+    config = {
+        "__version__": __version__,
+        "lang_code": lang_code,
+        "vdic": vdic,
+    }
+    try:
+        with open(config_path, 'wb') as handle:
+            pickle.dump(config, handle, protocol=pickle.HIGHEST_PROTOCOL)
+            print("save config")
+    except:
+        print("Cannot Save Config")
 
 
 if __name__ == '__main__':
-    exit_flag = False
-    if platform == 'darwin':
-        GUI_WIDTH = 1120
-        GUI_HEIGHT = 720
-    else:
-        GUI_WIDTH = 950
-        GUI_HEIGHT = 700
-    while not exit_flag:
-        exit_flag = True
+    appMainWindow = None
+    app = QtWidgets.QApplication(sys.argv)
 
-        root = tk.Tk()
-        loadLanguage()
 
-        old_vdic = None
-        tk_image_path = tk.StringVar(value=getPath("Source/fallback.png"))
-        tk_sound_path = tk.StringVar()
-        tk_logo_path = tk.StringVar(value=getPath("Source/Logo.png"))
-        tk_bg_path = tk.StringVar(value="")
-        tk_output_path = tk.StringVar()
-        tk_filename = tk.StringVar(value="output")
-
-        tk_text = tk.StringVar()
-        tk_font = tk.StringVar(value=getPath("Source/font.otf"))
-        tk_relsize = tk.DoubleVar(value=1.0)
-        bindPreview(tk_relsize)
-        tk_text_glow = tk.BooleanVar(value=False)
-        bindPreview(tk_text_glow)
-        tk_text_brt = tk.DoubleVar(value=1.0)
-        bindPreview(tk_text_brt)
-
-        tk_bins = tk.IntVar(value=80)
-        bindPreview(tk_bins)
-
-        tk_fq_low = tk.IntVar()
-        tk_fq_high = tk.IntVar()
-        tk_scalar = tk.DoubleVar()
-        tk_color = tk.StringVar()
-        bindPreview(tk_color)
-        tk_bright = tk.DoubleVar(value=0.8)
-        bindPreview(tk_bright)
-        tk_saturation = tk.DoubleVar(value=0.8)
-        bindPreview(tk_saturation)
-        tk_smooth = tk.IntVar()
-        tk_linewidth = tk.DoubleVar(value=1.0)
-        bindPreview(tk_linewidth)
-        tk_style = tk.StringVar()
-        bindPreview(tk_style)
-
-        tk_bg_mode = tk.StringVar()
-        bindPreview(tk_bg_mode)
-        tk_blur_bg = tk.BooleanVar(value=True)
-        bindPreview(tk_blur_bg)
-        tk_use_glow = tk.BooleanVar(value=False)
-        bindPreview(tk_use_glow)
-        tk_rotate = tk.DoubleVar(value=0)
-        bindPreview(tk_rotate)
-
-        tk_width = tk.IntVar()
-        tk_height = tk.IntVar()
-        tk_fps = tk.DoubleVar()
-        tk_br_video = tk.DoubleVar()
-        tk_br_audio = tk.IntVar()
-        tk_audio_normal = tk.BooleanVar()
-
-        tk_preseta = tk.StringVar()
-        tk_presetv = tk.StringVar()
-
-        tk_lang = tk.StringVar()
-
-        isRunning = False
-
-        fb = FanBlender()
-
-        root.title(lang["Fanseline Audio Visualizer"] + " - V." + __version__)
-        root.bind('<Key>', shortCut)
-        canvas = tk.Canvas(root, width=GUI_WIDTH, height=GUI_HEIGHT)
-        canvas.pack()
-        frame1 = tk.Frame(master=root)
-        frame1.place(relx=0, rely=0, relwidth=1, relheight=1, anchor='nw')
-
-        root_view = tk.Toplevel(root)
-        root_view.title(lang["Preview"])
-        root_view.withdraw()
-        canvas = tk.Canvas(root_view, width=GUI_WIDTH // 2, height=GUI_HEIGHT // 2)
-        canvas.pack()
-        frame2 = ImageViewer(root_view)
-        frame2.setGUI(GUI_WIDTH * 2 / 3, GUI_HEIGHT)
-        frame2.setLanguage(lang)
-
-        rely, devy = 0.01, 0.06
-        relh = 0.04
-
-        label_lang = tk.Label(master=frame1, textvariable=tk.StringVar(value="Language/语言:"), anchor="e")
-        label_lang.place(relwidth=0.1, relheight=relh, relx=0.05, rely=rely, anchor='nw')
-        list_lang = ttk.Combobox(master=frame1, textvariable=tk_lang, state="readonly")
-        list_lang["values"] = ("English", "简体中文")
-        if lang_code == "cn_s":
-            list_lang.current(1)
-        else:
-            list_lang.current(0)
-        list_lang.place(relwidth=0.1, relheight=relh, relx=0.15, rely=rely, anchor='nw')
-        list_lang.bind("<<ComboboxSelected>>", resetGUI)
-
-        label_preseta = tk.Label(master=frame1, textvariable=tk.StringVar(value=lang["Audio Preset:"]), anchor="e")
-        label_preseta.place(relwidth=0.1, relheight=relh, relx=0.25, rely=rely, anchor='nw')
-        list_preseta = ttk.Combobox(master=frame1, textvariable=tk_preseta, state="readonly")
-        audio_dic = {
-            lang["Music-HQ"] + " (320k)": [320, 20, 2500, False, 1.0, 2],
-            lang["Music-MQ"] + " (128k)": [128, 20, 2500, False, 1.0, 2],
-            lang["Music-LQ"] + " (48k)": [48, 20, 2500, False, 1.0, 2],
-            lang["Voice-HQ"] + " (320k)": [320, 20, 2500, True, 1.0, 5],
-            lang["Voice-MQ"] + " (128k)": [128, 40, 2200, True, 1.0, 5],
-            lang["Voice-LQ"] + " (48k)": [48, 80, 2000, True, 1.0, 5],
-        }
-        list_preseta["values"] = dict2tuple(audio_dic)
-        list_preseta.current(0)
-        list_preseta.bind("<<ComboboxSelected>>", presetAudio)
-        presetAudio()
-        list_preseta.set(lang["-Please Select-"])
-        list_preseta.place(relwidth=0.14, relheight=relh, relx=0.35, rely=rely, anchor='nw')
-
-        label_presetv = tk.Label(master=frame1, textvariable=tk.StringVar(value=lang["Video Preset:"]), anchor="e")
-        label_presetv.place(relwidth=0.1, relheight=relh, relx=0.5, rely=rely, anchor='nw')
-        list_presetv = ttk.Combobox(master=frame1, textvariable=tk_presetv, state="readonly")
-        video_dic = {
-            lang["Square"] + " (1080x1080)": [1080, 1080, 30, getDefaultBR(1080, 1080, 30, 5)],
-            lang["Square"] + " (1024x1024)": [1024, 1024, 30, getDefaultBR(1024, 1024, 30, 5)],
-            lang["Square"] + " (720x720)": [720, 720, 30, getDefaultBR(720, 720, 30, 4)],
-            lang["Square"] + " (512x512)": [512, 512, 30, getDefaultBR(512, 512, 30, 4)],
-            lang["Square"] + " (480x480)": [480, 480, 30, getDefaultBR(480, 480, 30, 4)],
-            lang["Landscape"] + " (1920x1080)": [1920, 1080, 30, getDefaultBR(1920, 1080, 30, 5)],
-            lang["Landscape"] + " (1280x720)": [1280, 720, 30, getDefaultBR(1280, 720, 30, 4)],
-            lang["Landscape"] + " (854x480)": [854, 480, 30, getDefaultBR(854, 480, 30, 4)],
-            lang["Portrait"] + " (1080x1920)": [1080, 1920, 30, getDefaultBR(1920, 1080, 30, 5)],
-            lang["Portrait"] + " (720x1280)": [720, 1280, 30, getDefaultBR(1280, 720, 30, 4)],
-            lang["Portrait"] + " (480x854)": [480, 854, 30, getDefaultBR(854, 480, 30, 4)],
-            "2k (2560x1440)": [2560, 1440, 30, getDefaultBR(2560, 1440, 30, 5)],
-        }
-        list_presetv["values"] = dict2tuple(video_dic)
-        list_presetv.current(4)
-        list_presetv.bind("<<ComboboxSelected>>", presetVideo)
-        presetVideo()
-        list_presetv.set(lang["-Please Select-"])
-        list_presetv.place(relwidth=0.19, relheight=relh, relx=0.6, rely=rely, anchor='nw')
-
-        btn_prev = tk.Button(master=frame1, text=lang["Preview"], command=showPreview)
-        btn_prev.place(relwidth=0.15, relheight=relh, relx=0.8, rely=rely, anchor='nw')
-
-        rely += devy
-        entry_audio = tk.Entry(master=frame1, textvariable=tk_sound_path)
-        entry_audio.place(relwidth=0.74, relheight=relh, relx=0.05, rely=rely, anchor='nw')
-        btn_audio = tk.Button(master=frame1, text=lang["Audio (REQUIRED)"], command=selectAudio)
-        btn_audio.place(relwidth=0.15, relheight=relh, relx=0.8, rely=rely, anchor='nw')
-
-        rely += devy
-        entry_img = tk.Entry(master=frame1, textvariable=tk_image_path)
-        entry_img.place(relwidth=0.74, relheight=relh, relx=0.05, rely=rely, anchor='nw')
-        btn_img = tk.Button(master=frame1, text=lang["Foreground Image"], command=selectImage)
-        btn_img.place(relwidth=0.15, relheight=relh, relx=0.8, rely=rely, anchor='nw')
-        entry_img.bind("<FocusOut>", fastPreview)
-        entry_img.bind('<Return>', fastPreview)
-
-        rely += devy
-        entry_bg = tk.Entry(master=frame1, textvariable=tk_bg_path)
-        entry_bg.place(relwidth=0.28, relheight=relh, relx=0.05, rely=rely, anchor='nw')
-        btn_bg = tk.Button(master=frame1, text=lang["Background Image"], command=selectBG)
-        btn_bg.place(relwidth=0.15, relheight=relh, relx=0.34, rely=rely, anchor='nw')
-        entry_bg.bind("<FocusOut>", fastPreview)
-        entry_bg.bind('<Return>', fastPreview)
-
-        entry_logo = tk.Entry(master=frame1, textvariable=tk_logo_path)
-        entry_logo.place(relwidth=0.29, relheight=relh, relx=0.5, rely=rely, anchor='nw')
-        btn_logo = tk.Button(master=frame1, text=lang["Logo File"], command=selectLogo)
-        btn_logo.place(relwidth=0.15, relheight=relh, relx=0.8, rely=rely, anchor='nw')
-        entry_logo.bind("<FocusOut>", fastPreview)
-        entry_logo.bind('<Return>', fastPreview)
-
-        rely += devy
-        label_textplz = tk.Label(master=frame1, text=lang["Your Text:"], anchor="e")
-        label_textplz.place(relwidth=0.1, relheight=relh, relx=0.05, rely=rely, anchor='nw')
-        entry_text = tk.Entry(master=frame1, textvariable=tk_text)
-        entry_text.place(relwidth=0.18, relheight=relh, relx=0.15, rely=rely, anchor='nw')
-        entry_text.bind("<FocusOut>", fastPreview)
-        entry_text.bind('<Return>', fastPreview)
-        tk_text.set("Hello World!")
-
-        label_text_brt = tk.Label(master=frame1, text=lang["Text Brt.:"], anchor="e")
-        label_text_brt.place(relwidth=0.1, relheight=relh, relx=0.35, rely=rely, anchor='nw')
-        entry_text_brt = ttk.Combobox(master=frame1, textvariable=tk_text_brt)
-        entry_text_brt["values"] = (1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0.0)
-        entry_text_brt.current(0)
-        entry_text_brt.place(relwidth=0.05, relheight=relh, relx=0.45, rely=rely, anchor='nw')
-
-        label_font = tk.Label(master=frame1, text=lang["Font Size:"], anchor="e")
-        label_font.place(relwidth=0.08, relheight=relh, relx=0.51, rely=rely, anchor='nw')
-
-        entry_relsize = ttk.Combobox(master=frame1, textvariable=tk_relsize)
-        entry_relsize["values"] = (5.0, 4.5, 4.0, 3.5, 3.0, 2.8, 2.5, 2.2, 2.0, 1.8, 1.5, 1.2, 1.0, 0.8, 0.5)
-        entry_relsize.current(12)
-        entry_relsize.place(relwidth=0.05, relheight=relh, relx=0.59, rely=rely, anchor='nw')
-
-        entry_font = tk.Entry(master=frame1, textvariable=tk_font)
-        entry_font.place(relwidth=0.14, relheight=relh, relx=0.65, rely=rely, anchor='nw')
-        btn_font = tk.Button(master=frame1, text=lang["Font File"], command=selectFont)
-        btn_font.place(relwidth=0.15, relheight=relh, relx=0.8, rely=rely, anchor='nw')
-
-        rely += devy
-        label_size = tk.Label(master=frame1, text=lang["Video Size:"], anchor="e")
-        label_size.place(relwidth=0.1, relheight=relh, relx=0.05, rely=rely, anchor='nw')
-        entry_width = tk.Entry(master=frame1, textvariable=tk_width)
-        entry_width.place(relwidth=0.05, relheight=relh, relx=0.15, rely=rely, anchor='nw')
-        entry_width.bind("<FocusOut>", fastPreview)
-        entry_width.bind('<Return>', fastPreview)
-
-        label_mul = tk.Label(master=frame1, textvariable=tk.StringVar(value="x"))
-        label_mul.place(relwidth=0.03, relheight=relh, relx=0.2, rely=rely, anchor='nw')
-
-        entry_height = tk.Entry(master=frame1, textvariable=tk_height)
-        entry_height.place(relwidth=0.05, relheight=relh, relx=0.23, rely=rely, anchor='nw')
-        entry_height.bind("<FocusOut>", fastPreview)
-        entry_height.bind('<Return>', fastPreview)
-
-        label_fps = tk.Label(master=frame1, text=lang["FPS:"], anchor="e")
-        label_fps.place(relwidth=0.1, relheight=relh, relx=0.35, rely=rely, anchor='nw')
-        entry_fps = ttk.Combobox(master=frame1, textvariable=tk_fps)
-        entry_fps["values"] = (60.0, 50.0, 30.0, 25.0, 20.0, 15.0)
-        entry_fps.current(2)
-        entry_fps.place(relwidth=0.05, relheight=relh, relx=0.45, rely=rely, anchor='nw')
-
-        label_brv = tk.Label(master=frame1, text=lang["Video BR (Mbps):"], anchor="e")
-        label_brv.place(relwidth=0.12, relheight=relh, relx=0.53, rely=rely, anchor='nw')
-        entry_brv = tk.Entry(master=frame1, textvariable=tk_br_video)
-        entry_brv.place(relwidth=0.05, relheight=relh, relx=0.65, rely=rely, anchor='nw')
-
-        btn_autob = tk.Button(master=frame1, text=lang["Auto Bit Rate"], command=autoBitrate)
-        btn_autob.place(relwidth=0.15, relheight=relh, relx=0.8, rely=rely, anchor='nw')
-
-        rely += devy
-        label_bra = tk.Label(master=frame1, text=lang["Audio BR:"], anchor="e")
-        label_bra.place(relwidth=0.1, relheight=relh, relx=0.05, rely=rely, anchor='nw')
-        list_bra = ttk.Combobox(master=frame1, textvariable=tk_br_audio)
-        list_bra["values"] = (320, 256, 192, 128, 96, 64, 48)
-        list_bra.current(0)
-        list_bra.place(relwidth=0.08, relheight=relh, relx=0.15, rely=rely, anchor='nw')
-        label_kbps = tk.Label(master=frame1, textvariable=tk.StringVar(value="Kbps"), anchor="w")
-        label_kbps.place(relwidth=0.05, relheight=relh, relx=0.23, rely=rely, anchor='nw')
-
-        check_normal = tk.Checkbutton(master=frame1, text=lang["Normalize Volume"],
-                                      variable=tk_audio_normal, onvalue=True, offvalue=False, anchor="e")
-        check_normal.place(relwidth=0.15, relheight=relh, relx=0.35, rely=rely, anchor='nw')
-
-        label_rotate = tk.Label(master=frame1, text=lang["Spin FG(rpm):"], anchor="e")
-        label_rotate.place(relwidth=0.15, relheight=relh, relx=0.5, rely=rely, anchor='nw')
-        entry_rotate = ttk.Combobox(master=frame1, textvariable=tk_rotate)
-        entry_rotate["values"] = (6.0, 5.0, 4.0, 3.0, 2.0, 1.0, 0.0, -1.0, -2.0, -3.0, -4.0, -5.0, -6.0)
-        entry_rotate.current(6)
-        entry_rotate.place(relwidth=0.05, relheight=relh, relx=0.65, rely=rely, anchor='nw')
-
-        label_bg_mode = tk.Label(master=frame1, text=lang["BG Mode:"], anchor="e")
-        label_bg_mode.place(relwidth=0.1, relheight=relh, relx=0.7, rely=rely, anchor='nw')
-        list_bg_mode = ttk.Combobox(master=frame1, textvariable=tk_bg_mode, state="readonly")
-        bg_mode_dic = {
-            lang["Blurred BG Image"]: [True, 0],
-            lang["Normal BG Image"]: [False, 0],
-            lang["Blurred BG Only"]: [True, 2],
-            lang["Normal BG Only"]: [False, 2],
-            lang["Transparent"]: [False, -1],
-            lang["Spectrum Only"]: [False, -2],
-        }
-
-        list_bg_mode["values"] = dict2tuple(bg_mode_dic)
-        list_bg_mode.current(0)
-        list_bg_mode.bind("<<ComboboxSelected>>", setFileType)
-        list_bg_mode.place(relwidth=0.15, relheight=relh, relx=0.8, rely=rely, anchor='nw')
-
-        rely += devy
-        label_range = tk.Label(master=frame1, text=lang["Analyze Freq:"], anchor="e")
-        label_range.place(relwidth=0.1, relheight=relh, relx=0.05, rely=rely, anchor='nw')
-        entry_low = tk.Entry(master=frame1, textvariable=tk_fq_low)
-        entry_low.place(relwidth=0.05, relheight=relh, relx=0.15, rely=rely, anchor='nw')
-        label_to = tk.Label(master=frame1, textvariable=tk.StringVar(value=lang["to"]))
-        label_to.place(relwidth=0.03, relheight=relh, relx=0.2, rely=rely, anchor='nw')
-        entry_up = tk.Entry(master=frame1, textvariable=tk_fq_high)
-        entry_up.place(relwidth=0.05, relheight=relh, relx=0.23, rely=rely, anchor='nw')
-        label_hz = tk.Label(master=frame1, textvariable=tk.StringVar(value=lang["Hz"]), anchor="w")
-        label_hz.place(relwidth=0.03, relheight=relh, relx=0.28, rely=rely, anchor='nw')
-
-        label_bins = tk.Label(master=frame1, text=lang["Spectrum Num:"], anchor="e")
-        label_bins.place(relwidth=0.1, relheight=relh, relx=0.35, rely=rely, anchor='nw')
-        entry_bins = ttk.Combobox(master=frame1, textvariable=tk_bins)
-        entry_bins["values"] = (6, 12, 18, 24, 36, 48, 60, 72, 84, 96, 108, 120)
-        entry_bins.current(5)
-        entry_bins.place(relwidth=0.05, relheight=relh, relx=0.45, rely=rely, anchor='nw')
-
-        label_scalar = tk.Label(master=frame1, text=lang["Spectrum Scalar:"], anchor="e")
-        label_scalar.place(relwidth=0.12, relheight=relh, relx=0.53, rely=rely, anchor='nw')
-        entry_scalar = ttk.Combobox(master=frame1, textvariable=tk_scalar)
-        entry_scalar["values"] = (0.05, 0.1, 0.2, 0.5, 0.7, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0)
-        entry_scalar.current(5)
-        entry_scalar.place(relwidth=0.05, relheight=relh, relx=0.65, rely=rely, anchor='nw')
-
-        label_color = tk.Label(master=frame1, text=lang["Spec. Hue:"], anchor="e")
-        label_color.place(relwidth=0.1, relheight=relh, relx=0.7, rely=rely, anchor='nw')
-        list_color = ttk.Combobox(master=frame1, textvariable=tk_color, state="readonly")
-
-        color_dic = {
-            lang["Rainbow 4x"]: "color4x",
-            lang["Rainbow 2x"]: "color2x",
-            lang["Rainbow 1x"]: "color1x",
-            lang["White"]: "white",
-            lang["Black"]: "black",
-            lang["Gray"]: "gray",
-            lang["Red"]: "red",
-            lang["Green"]: "green",
-            lang["Blue"]: "blue",
-            lang["Yellow"]: "yellow",
-            lang["Magenta"]: "magenta",
-            lang["Purple"]: "purple",
-            lang["Cyan"]: "cyan",
-            lang["Light Green"]: "lightgreen",
-            lang["Green - Blue"]: "green-blue",
-            lang["Magenta - Purple"]: "magenta-purple",
-            lang["Red - Yellow"]: "red-yellow",
-            lang["Yellow - Green"]: "yellow-green",
-            lang["Blue - Purple"]: "blue-purple",
-        }
-
-        list_color["values"] = dict2tuple(color_dic)
-        list_color.current(0)
-        list_color.place(relwidth=0.15, relheight=relh, relx=0.8, rely=rely, anchor='nw')
-
-        rely += devy
-
-        label_style = tk.Label(master=frame1, text=lang["Spectrum Style:"], anchor="e")
-        label_style.place(relwidth=0.1, relheight=relh, relx=0.05, rely=rely, anchor='nw')
-        list_style = ttk.Combobox(master=frame1, textvariable=tk_style)
-
-        style_dic = {
-            lang["Solid Line"]: 0,
-            lang["Dot Line"]: 1,
-            lang["Single Dot"]: 2,
-            lang["Double Dot"]: 7,
-            lang["Concentric"]: 8,
-            lang["Line Graph"]: 17,
-            lang["Classic 1"]: 9,
-            lang["Classic 2"]: 10,
-            lang["Classic 3"]: 15,
-            lang["Classic 4"]: 16,
-            lang["Classic Dot 1"]: 11,
-            lang["Classic Dot 2"]: 12,
-            lang["Classic Dot 3"]: 13,
-            lang["Classic Dot 4"]: 14,
-            lang["Stem Plot 1"]: 3,
-            lang["Stem Plot 2"]: 4,
-            lang["Stem Plot 3"]: 5,
-            lang["Stem Plot 4"]: 6,
-            lang["No Spectrum"]: -1,
-        }
-        list_style["values"] = dict2tuple(style_dic)
-        list_style["state"] = "readonly"
-        list_style.current(0)
-        list_style.place(relwidth=0.13, relheight=relh, relx=0.15, rely=rely, anchor='nw')
-
-        label_linewidth = tk.Label(master=frame1, text=lang["Line Width:"], anchor="e")
-        label_linewidth.place(relwidth=0.1, relheight=relh, relx=0.35, rely=rely, anchor='nw')
-        entry_linewidth = ttk.Combobox(master=frame1, textvariable=tk_linewidth)
-        entry_linewidth["values"] = (
-            15.0, 12.0, 10.0, 8.0, 6.0, 5.0, 4.0, 3.0, 2.0, 1.5, 1.2, 1.0, 0.8, 0.6, 0.5, 0.4, 0.3)
-        entry_linewidth.current(11)
-        entry_linewidth.place(relwidth=0.05, relheight=relh, relx=0.45, rely=rely, anchor='nw')
-
-        label_smooth = tk.Label(master=frame1, text=lang["Spectrum Stabilize:"], anchor="e")
-        label_smooth.place(relwidth=0.15, relheight=relh, relx=0.50, rely=rely, anchor='nw')
-        list_smooth = ttk.Combobox(master=frame1, textvariable=tk_smooth)
-        list_smooth["values"] = (0, 1, 2, 3, 5, 6, 7, 8, 9, 10)
-        list_smooth.current(0)
-        list_smooth.place(relwidth=0.05, relheight=relh, relx=0.65, rely=rely, anchor='nw')
-
-        label_saturation = tk.Label(master=frame1, text=lang["Spec. Sat.:"], anchor="e")
-        label_saturation.place(relwidth=0.1, relheight=relh, relx=0.7, rely=rely, anchor='nw')
-        entry_saturation = ttk.Combobox(master=frame1, textvariable=tk_saturation)
-        entry_saturation["values"] = (1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0.0)
-        entry_saturation.current(4)
-        entry_saturation.place(relwidth=0.15, relheight=relh, relx=0.8, rely=rely, anchor='nw')
-
-        rely += devy
-
-        check_text_glow = tk.Checkbutton(master=frame1, text=lang["Glow Text"],
-                                         variable=tk_text_glow, onvalue=True, offvalue=False, anchor="e")
-        check_text_glow.place(relwidth=0.15, relheight=relh, relx=0.35, rely=rely, anchor='nw')
-
-        check_use_glow = tk.Checkbutton(master=frame1, text=lang["Glow Spec. (SLOW)"],
-                                        variable=tk_use_glow, onvalue=True, offvalue=False, anchor="e")
-        check_use_glow.place(relwidth=0.15, relheight=relh, relx=0.55, rely=rely, anchor='nw')
-
-        label_bright = tk.Label(master=frame1, text=lang["Spec. Brt.:"], anchor="e")
-        label_bright.place(relwidth=0.1, relheight=relh, relx=0.7, rely=rely, anchor='nw')
-        entry_bright = ttk.Combobox(master=frame1, textvariable=tk_bright)
-        entry_bright["values"] = (1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0.0)
-        entry_bright.current(4)
-        entry_bright.place(relwidth=0.15, relheight=relh, relx=0.8, rely=rely, anchor='nw')
-
-        rely += devy
-        scr = scrolledtext.ScrolledText(master=frame1, width=20, height=10)
-        scr.place(relwidth=0.9, relheight=relh * 6.5, relx=0.05, rely=rely, anchor='nw')
-
-        rely += relh * 6.8
-
-        entry_output = tk.Entry(master=frame1, textvariable=tk_output_path)
-        entry_output.place(relwidth=0.44, relheight=relh, relx=0.05, rely=rely, anchor='nw')
-        entry_fname = tk.Entry(master=frame1, textvariable=tk_filename)
-        entry_fname.place(relwidth=0.25, relheight=relh, relx=0.5, rely=rely, anchor='nw')
-        label_mp4 = tk.Label(master=frame1, text=".mp4", anchor="w")
-        label_mp4.place(relwidth=0.05, relheight=relh, relx=0.75, rely=rely, anchor='nw')
-        btn_output = tk.Button(master=frame1, text=lang["Output (REQUIRED)"], command=selectOutput)
-        btn_output.place(relwidth=0.15, relheight=relh, relx=0.8, rely=rely, anchor='nw')
-        rely += devy
-
-        progress = ttk.Progressbar(master=frame1, orient=tk.HORIZONTAL, mode='determinate', value=0)
-        progress.place(relwidth=0.7, relheight=relh, relx=0.05, rely=rely, anchor='nw')
-
-        btn_blend = tk.Button(master=frame1, text=lang["Blend & Export"], command=startBlending)
-        btn_blend.place(relwidth=0.15, relheight=relh, relx=0.8, rely=rely, anchor='nw')
-
+    def startMain():
+        global appMainWindow, lang, vdic, first_run
         loadConfig()
-        clearLog()
-
-        try:
-
-            if platform == 'darwin':
-                root.tk.call('tk', 'scaling', 1.0)  # DPI setting
-                root_view.tk.call('tk', 'scaling', 1.0)
-            else:
-                ctypes.windll.shcore.SetProcessDpiAwareness(1)
-                ScaleFactor = ctypes.windll.shcore.GetScaleFactorForDevice(0)
-                root.tk.call('tk', 'scaling', ScaleFactor / 75)
-                root_view.tk.call('tk', 'scaling', ScaleFactor / 75)
-            root_view.iconphoto(False, tk.PhotoImage(file=getPath('Source/icon-small.png')))
-            root.iconphoto(False, tk.PhotoImage(file=getPath('Source/icon-small.png')))
-        except Exception as e:
-            print("Scale Error:", str(e))
+        appMainWindow = MainWindow(lang, vdic, lang_code, first_run)
+        appMainWindow.resize(1024, 700)
+        appMainWindow.show()
+        appMainWindow.refreshAll()
 
 
-        def disable_event():
-            if fb.isRunning:
-                tkinter.messagebox.showinfo(lang["Notice"], lang["Please stop blending before quit!"])
-            else:
-                root.destroy()
+    while not close_app:
+        startMain()
+        app.exec_()
 
-
-        def close_view():
-            root_view.withdraw()
-
-
-        root.protocol("WM_DELETE_WINDOW", disable_event)
-        root_view.protocol("WM_DELETE_WINDOW", close_view)
-        frame1.tkraise()
-        showPreview()
-        root.mainloop()
+    sys.exit()

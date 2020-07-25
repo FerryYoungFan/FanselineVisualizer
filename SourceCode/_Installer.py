@@ -32,13 +32,11 @@ app_name = "FanselineVisualizer"
 main_file = "FanBlender_GUI.py"
 
 if platform == "darwin":
-    icon_path = "./Source/icon-mac.icns"
-    output_list = ["--name=%s" % app_name,"--windowed"]
+    icon_path = "./Source_/icon-mac.icns"
+    output_list = ["--name=%s" % app_name, "--windowed"]
     if os.path.exists("./Source"):
         output_list.append("--add-data=%s" % "./Source:Source/")
     if os.path.exists("./Source_/MacOS_Support"):
-        # output_list.append("--add-data=%s" % "./Source_/MacOS_Support/Tcl_Tk_Replace/tclResources:tclResources/")
-        # output_list.append("--add-data=%s" % "./Source_/MacOS_Support/Tcl_Tk_Replace/tkResources:tkResources/")
         pass
     if os.path.exists(icon_path):
         output_list.append("--icon=%s" % icon_path)

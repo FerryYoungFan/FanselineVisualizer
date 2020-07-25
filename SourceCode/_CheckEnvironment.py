@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import os
 
 """
@@ -7,7 +10,9 @@ numpy		    V 1.19.0
 Pillow		    V 7.2.0
 imageio		    V 2.9.0
 imageio-ffmpeg	V 0.4.2
+PyQt5           V 5.15.0
 pydub		    V 0.24.1*
+
 (* No need to install ffmpeg for pydub, since it shares ffmpeg with imageio-ffmpeg.)
 """
 
@@ -42,6 +47,13 @@ def checkEnvironment(showInfo=True):
         if showInfo:
             print("imageio-ffmpeg not found, try to install:")
         os.system("pip3 install imageio-ffmpeg==0.4.2")
+
+    try:
+        import PyQt5
+    except:
+        if showInfo:
+            print("PyQt5 not found, try to install:")
+        os.system("pip3 install PyQt5==5.15.0")
 
     try:
         import pydub

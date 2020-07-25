@@ -1,20 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
 """
 Audio Visualizer
 帆室邻音频可视化
 By Twitter @FanKetchup
 https://github.com/FerryYoungFan/FanselineVisualizer
 """
-__version__ = "1.0.9"
-
-try:
-    from _CheckEnvironment import checkEnvironment
-
-    checkEnvironment(True)
-except:
-    pass
-
+__version__ = "1.1.0"  # Work with PYQT5
 from FanWheels_PIL import *
 from FanWheels_ffmpeg import *
 from FanAudioVisualizer import AudioVisualizer, AudioAnalyzer
@@ -23,7 +16,8 @@ import imageio
 import imageio_ffmpeg
 import numpy as np
 
-import threading, time, os, sys
+import threading, os, sys
+from PyQt5 import QtCore
 
 
 class blendingThread(threading.Thread):
@@ -79,7 +73,9 @@ class encodingThread(threading.Thread):
                     realTimePrev = None
                 self.parent.log("Processing:{0}/{1}".format(self.parent.encoder_pt, self.parent.total_frames))
                 self.parent.progress(self.parent.encoder_pt, self.parent.total_frames)
-                time.sleep(3.0)
+                loop = QtCore.QEventLoop()
+                QtCore.QTimer.singleShot(500, loop.quit)
+                loop.exec_()
         self.parent.previewRealTime(realTimePrev)
         realTimePrev = None
         self.parent.log("Processing:{0}/{1}".format(self.parent.encoder_pt, self.parent.total_frames))
@@ -116,6 +112,8 @@ class FanBlender:
         self.sound_path = None
         self.logo_path = None
         self.output_path = None
+        self.bg_img = None
+        self.logofile = None
 
         self.text_bottom = ""
         self.font = getPath("Source/font.otf")
@@ -137,8 +135,8 @@ class FanBlender:
         self.scalar = 1.0
 
         self._debug_bg = False
-        self._temp_audio_path = getPath("./Temp/temp.wav")
-        self._temp_video_path = getPath("./Temp/temp.mp4")
+        self._temp_audio_path = getPath("Temp/temp.wav")
+        self._temp_video_path = getPath("Temp/temp.mp4")
         self.ensure_dir(self._temp_audio_path)
 
         try:
@@ -149,7 +147,7 @@ class FanBlender:
         self._frame_size = 0
         self._relsize = 1.0
         self._font_size = 0
-        self._text_brt = 1.0
+        self._text_color = (0, 0, 0, 0)
         self._text_glow = False
         self._yoffset = 0
         # A good ratio for text and frame size
@@ -221,6 +219,13 @@ class FanBlender:
         if console:
             self._console = console
 
+    def audioError(self):
+        if self._console:
+            try:
+                self._console.audioWarning()
+            except:
+                pass
+
     def log(self, content=""):
         print(content)
         if self._console:
@@ -243,24 +248,10 @@ class FanBlender:
             except:
                 return
 
-    def setFilePath(self, image_path="", bg_path="", sound_path="", logo_path=""):
-        if image_path is not None:
-            if os.path.isfile(image_path):
-                self.image_path = image_path
-            else:
-                self.image_path = None
-                self.fileError(image_path)
-        else:
-            self.image_path = None
-
-        if bg_path is not None:
-            if os.path.isfile(bg_path):
-                self.bg_path = bg_path
-            else:
-                self.bg_path = None
-                self.fileError(bg_path)
-        else:
-            self.bg_path = None
+    def setFilePath(self, image_path=None, bg_path=None, sound_path=None, logo_path=None):
+        self.image_path = self.imgFileCheck(image_path)
+        self.bg_path = self.imgFileCheck(bg_path)
+        self.logo_path = self.imgFileCheck(logo_path)
 
         if sound_path is not None:
             if os.path.isfile(sound_path):
@@ -268,30 +259,31 @@ class FanBlender:
             else:
                 self.fileError(sound_path)
 
-        if logo_path is not None:
-            if os.path.isfile(logo_path):
-                self.logo_path = logo_path
-            else:
-                self.logo_path = None
-                self.fileError(logo_path)
-        else:
-            self.logo_path = None
+    def imgFileCheck(self, file_path):
+        if file_path is None:
+            return None
+        if isinstance(file_path, tuple) and (len(file_path) in [3, 4]):
+            self.visualizer = None
+            self.bg_blended = False
+            if len(file_path) == 3:
+                return file_path + (255,)
+            return file_path  # RGBA Color Tuple
+        if os.path.isfile(file_path):
+            self.visualizer = None
+            self.bg_blended = False
+            return file_path
+        return None
 
     def setOutputPath(self, output_path="", filename=""):
         if not filename:
             filename = "Visualize.mp4"
         if output_path:
             self.ensure_dir(os.path.join(output_path, filename))
-            # try:
-            #     self.log(filename)
-            # except Exception as e:
-            #     self.log("Error: This Tkinter only support Ascii encoding!")
-            #     self.log(str(e))
             self.output_path = cvtFileName(os.path.join(output_path, filename), "mp4")
 
-    def setText(self, text="", font="", relsize=None, text_brt=1.0, text_glow=None):
+    def setText(self, text="", font="", relsize=None, text_color=(255, 255, 255, 255), text_glow=None):
         self.text_bottom = text
-        if (not font) or (not os.path.exists(font)):
+        if not font:
             if os.path.exists(getPath("Source/font.otf")):
                 font = getPath("Source/font.otf")
             elif os.path.exists(getPath("Source/font.ttf")):
@@ -300,12 +292,11 @@ class FanBlender:
                 font = "Arial.ttf"
         if relsize is not None:
             self._relsize = clip(relsize, 0.1, 5)
-        if text_brt is not None:
-            self._text_brt = clip(text_brt, 0, 1)
+        if text_color is not None:
+            self._text_color = text_color
         if text_glow is not None:
             self._text_glow = text_glow
         self.font = font
-        self.bg_blended = False
 
     def setSpec(self, bins=None, lower=None, upper=None, color=None, bright=None, saturation=None, scalar=None,
                 smooth=None, style=None, linewidth=None):
@@ -317,8 +308,8 @@ class FanBlender:
 
         if upper is not None:
             upper = int(clip(upper, 16, 22000))
-            if upper < self.fq_low:
-                upper = self.fq_low
+            if upper <= self.fq_low:
+                upper = self.fq_low + 1
             self.fq_up = int(upper)
 
         if color is not None:
@@ -344,7 +335,6 @@ class FanBlender:
 
         self._amplify = self.setAmplify()
         self.visualizer = None
-        self.bg_blended = False
 
     def setVideoInfo(self, width=None, height=None, fps=None, br_Mbps=None, blur_bg=None, use_glow=None, bg_mode=None,
                      rotate=None):
@@ -382,68 +372,46 @@ class FanBlender:
         if br_kbps is not None:
             self.audio_bit_rate = int(round(clip(br_kbps, 5, 10000)))
 
-    def genBackground(self):
+    def genBackground(self, forceRefresh=False):
         self.calcRel()
-        if self.bg_blended:
-            return
-        image, bg = None, None
-        try:
-            image = Image.open(self.image_path).convert('RGBA')
-        except:
-            self.fileError(self.image_path)
+        if not self.bg_blended or forceRefresh:
+            self.log("Blending Background...")
 
-        try:
-            bg = Image.open(self.bg_path).convert('RGBA')
-        except:
-            self.fileError(self.bg_path)
-
-        if not image:
+            image = openImage(self.image_path, "RGBA", ["Source/fallback.png", "Source/fallback.jpg", (127, 127, 127)])
+            bg = openImage(self.bg_path, "RGB", [None])
+            self.logofile = openImage(self.logo_path, "RGBA", [None])
             try:
-                image = Image.open(getPath("Source/fallback.png")).convert('RGBA')
+                fimage = Image.new('RGB', image.size, (65, 65, 65))
+                fimage.paste(image, (0, 0), image)
+                if fimage:
+                    image = fimage
             except:
-                self.fileError(getPath("Source/fallback.png"))
+                pass
 
-        if not image:
-            try:
-                image = Image.open(getPath("Source/fallback.jpg")).convert('RGBA')
-            except:
-                self.fileError(getPath("Source/fallback.jpg"))
-                image = Image.new('RGB', (512, 512), (127, 127, 127))
+            foreground = cropCircle(image, size=self._frame_size // 2)
+            self.fg_img = foreground
 
-        self.log("Blending Background...")
-        try:
-            fimage = Image.new('RGB', image.size, (64, 64, 64))
-            fimage.paste(image, (0, 0), image)
-            if fimage:
-                image = fimage
-        except:
-            pass
+            if bg is None:
+                bg = image.copy()
 
-        try:
-            logofile = Image.open(self.logo_path).convert('RGBA')
-        except:
-            self.fileError(self.logo_path)
-            logofile = None
-
-        foreground = cropCircle(image, size=self._frame_size // 2)
-        self.fg_img = foreground
-
-        if bg is None:
-            bg = image.copy()
-
-        if self.bg_mode < 0:
-            background = Image.new("RGBA", (self.frame_width, self.frame_height), (0, 0, 0, 0))
-        else:
-            if self.blur_bg:
-                background = genBG(bg, size=(self.frame_width, self.frame_height), blur=self._blur_bg, bright=0.3)
+            if self.bg_mode < 0:
+                background = Image.new("RGBA", (self.frame_width, self.frame_height), (0, 0, 0, 0))
             else:
-                background = genBG(bg, size=(self.frame_width, self.frame_height), blur=0, bright=1.0)
+                if self.blur_bg:
+                    background = genBG(bg, size=(self.frame_width, self.frame_height), blur=self._blur_bg, bright=0.3)
+                else:
+                    background = genBG(bg, size=(self.frame_width, self.frame_height), blur=0, bright=1.0)
+            self.bg_img = background
+            self.log("Blending Background... Done!")
+
+        background = self.bg_img.copy()
         if self.bg_mode >= -1 and not self.bg_mode == 2:
             if self.rotate == 0:
-                background = pasteMiddle(foreground, background, glow=self.use_glow, blur=self._blur * 2,
+                background = pasteMiddle(self.fg_img, background, glow=self.use_glow, blur=self._blur * 2,
                                          bright=self._bright)
-            background = glowText(background, self.text_bottom, self._font_size, self.font, bright=self._text_brt,
-                                  blur=self._blur, logo=logofile, use_glow=self._text_glow, yoffset=self._yoffset)
+
+        background = glowText(background, self.text_bottom, self._font_size, self.font, color=self._text_color,
+                              blur=self._blur, logo=self.logofile, use_glow=self._text_glow, yoffset=self._yoffset)
 
         rad_max = (self._yoffset - self.frame_height / 2) * 0.97
         if self.text_bottom is None or self.text_bottom == "":
@@ -454,13 +422,12 @@ class FanBlender:
                                           rad_max=min(rad_max, self._frame_size / 2.1),
                                           line_thick=self._line_thick,
                                           blur=self._blur, style=self.style)
-        self.log("Blending Background... Done!")
         self.bg_blended = True
 
-    def previewBackground(self, localViewer=False):
-        self.genBackground()
+    def previewBackground(self, localViewer=False, forceRefresh=False):
+        self.genBackground(forceRefresh)
         xs = np.linspace(0, 10 * np.pi, self.bins)
-        ys = 0.5 + 0.6 * np.cos(xs)
+        ys = (0.5 + 0.5 * np.cos(xs)) * self.scalar
         frame_sample = self.visualizer.getFrame(hist=ys, amplify=1, color_mode=self.spectrum_color, bright=self._bright,
                                                 saturation=self._saturation, use_glow=self.use_glow, rotate=self.rotate,
                                                 fps=30, frame_pt=90, fg_img=self.fg_img, bg_mode=self.bg_mode)
@@ -495,22 +462,18 @@ class FanBlender:
             return
 
     def runBlending(self):
-        try:
-            self.log(self.output_path)
-        except:
-            self.log("Error, wait, what?!")
-        self.log("hi,hello,there")
         if self.isRunning:
             return
         self.removeTemp()
         self.freezeConsole(True)
-        self.genBackground()
+        self.genBackground(forceRefresh=True)
         if not self.ffmpegCheck():
             self.freezeConsole(False)
             return
         self.genAnalyzer()
         if self._temp_audio_path is None or not os.path.exists(str(self._temp_audio_path)):
             self.freezeConsole(False)
+            self.audioError()
             return
 
         self.isRunning = True
@@ -540,7 +503,15 @@ class FanBlender:
 
         thread_encode = encodingThread(1, "Thread-1", 1, self)
         thread_stack = []
-        thread_num = 7
+        thread_num = 4
+        cpu_count = os.cpu_count()
+        if cpu_count is not None:
+            thread_num = cpu_count - 3
+        if thread_num < 4:
+            thread_num = 4
+
+        print("CPU Thread for Blending: " + str(thread_num))
+
         self.frame_lock = np.zeros(self.total_frames, dtype=np.uint8)
 
         for ith in range(thread_num):
@@ -605,6 +576,7 @@ def clip(value, low_in=0.0, up_in=0.0):
 
 def getPath(fileName):  # for different operating systems
     path = os.path.join(os.path.dirname(sys.argv[0]), fileName)
+    path = path.replace("\\", "/")
     return path
 
 
@@ -613,17 +585,24 @@ if __name__ == '__main__':
 
     fb = FanBlender()  # Initialize Blender
 
-    fb.setFilePath(image_path=getPath("Source/fallback.png"),
-                   bg_path=getPath("Source/background.jpg"),
-                   sound_path=getPath("Source/test.mp3"),
-                   logo_path=getPath("Source/logo.png"))  # Set File Path
+    fb.setFilePath(image_path="Source/fallback.png",
+                   bg_path="Source/background.jpg",
+                   sound_path="Source/test.mp3",
+                   logo_path="Source/logo.png")
+    """
+    Set file path.
+    You can also use RGBA color as path to generate a monocolor image: e.g. image_path=(255,0,0,255)
+    """
 
-    fb.setOutputPath(output_path=getPath("./Output"),
+    fb.setOutputPath(output_path="./Output",
                      filename="test.mp4")  # Set Output Path
 
-    fb.setText(text="Your Text Here", font=getPath("Source/font.otf"),
-               relsize=1.0, text_brt=0.8, text_glow=True)
-    # Set Text at the Bottom (Relative Font Size: 0.3 - 5.0)
+    fb.setText(text="Your Text Here", font="Source/font.otf",
+               relsize=1.0, text_color=(255, 255, 255, 255), text_glow=True)
+    """
+    Set text at the Bottom (Relative Font Size: 0.3 - 5.0)
+    Text color format: RGBA
+    """
 
     fb.setSpec(bins=60, lower=20, upper=1500,
                color=fb.color_dic["Gradient: Green - Blue"], bright=0.6, saturation=0.8,
@@ -652,6 +631,8 @@ if __name__ == '__main__':
     bg_mode: 0: Normal Background, 2: Background Only, -1: Transparent Background, -2: Spectrum Only
     rotate: Rotate Foreground (r/min, Positive for Clockwise)
     """
-    fb.previewBackground(localViewer=True)  # Preview before blending
     fb.setAudioInfo(normal=False, br_kbps=192)  # Audio info
+
+    fb.previewBackground(localViewer=True)  # Preview before blending
+
     fb.runBlending()  # Blend the Video

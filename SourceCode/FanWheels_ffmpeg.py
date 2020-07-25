@@ -26,9 +26,10 @@ def toTempWaveFile(file_in, file_out):
 def combineVideo(video, audio, file_out, audio_quality="320k", normal=False):
     cmd1 = '-i \"{0}\" -itsoffset 0.0 -i \"{1}\" '.format(video, audio)
     if not normal:
-        cmd2 = '-map 0 -c:v copy -map 1 -b:a {0} -c:a aac -y \"{1}\"'.format(audio_quality, file_out)
+        cmd2 = '-map 0:v:0 -c:v copy -map 1:a:0 -b:a {0} -c:a aac -y \"{1}\"'.format(audio_quality, file_out)
     else:
-        cmd2 = '-map 0 -c:v copy -map 1 -b:a {0} -c:a aac -filter:a loudnorm -y \"{1}\"'.format(audio_quality, file_out)
+        cmd2 = '-map 0:v:0 -c:v copy -map 1:a:0 -b:a {0} -c:a aac -filter:a loudnorm -y \"{1}\"'.format(audio_quality,
+                                                                                                        file_out)
     cmd = cmd1 + cmd2
     ffcmd(cmd)
 
