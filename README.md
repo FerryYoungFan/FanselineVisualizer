@@ -1,6 +1,10 @@
 # Fanseline Visualizer - 帆室邻音频可视化视频制作工具
+ 
  Convert audio files to visualized video  
  将音频文件转化为可视化视频  
+ 
+  Ver.1.1.0  Release for Windows, macOS, Ubuntu X64:  
+https://github.com/FerryYoungFan/FanselineVisualizer/releases
  
  See How to use:  
  查看如何使用：  
