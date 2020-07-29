@@ -48,7 +48,7 @@ class MainWindow(QtWidgets.QWidget):
         self.lang = lang_in
         self.lang_code = lang_code_in
         self.first_run = first_run_in
-        self.windowName = self.lang["Fanseline Visualizer"] + " - V" + __version__
+        self.windowName = self.lang["Fanseline Visualizer"] + " - v" + __version__
         self.setWindowTitle(self.windowName)
         setWindowIcons(self)
 
@@ -280,7 +280,9 @@ class MainWindow(QtWidgets.QWidget):
                 <a href="https://www.matataki.io/user/526">
                 <font color=#437BB5><u>小岛美奈子</u></font></a> &nbsp;&nbsp;&nbsp;&nbsp;
                 <a href="https://twitter.com/dougiedoggies">
-                <font color=#437BB5><u>Dougie Doggies</u></font></a> &nbsp;&nbsp;&nbsp;&nbsp;
+                <font color=#437BB5><u>Dougie Doggies</u></font></a><br/>
+                <a href="https://twitter.com/kagurazakayashi">
+                <font color=#437BB5><u>神楽坂雅詩</u></font></a> &nbsp;&nbsp;&nbsp;&nbsp;
                 <br/>
                 """
         intro += "{0}<br/>".format(self.lang["... and all people who support me!"])
@@ -324,7 +326,7 @@ class MainWindow(QtWidgets.QWidget):
                     self.time_cache = self.lang["Remaining Time:"] + " " + time_remain + "<br/>"
 
             if self.time_cache != "":
-                info += "<font color=#437BB5>" + self.lang["Blending:"] + " " + str(
+                info += "<font color=#437BB5>" + self.lang["Rendering:"] + " " + str(
                     self.infoBridge.value) + " / " + str(self.infoBridge.total) + "</font><br/>"
                 info += self.time_cache
             else:
@@ -340,13 +342,13 @@ class MainWindow(QtWidgets.QWidget):
         else:
             print("error log:" + str(self.error_log))
             if self.error_log == -1:
-                info += "<h3><font color=#9C9642>" + self.lang["Blending Aborted!"] + "</font></h3>"
+                info += "<h3><font color=#9C9642>" + self.lang["Rendering Aborted!"] + "</font></h3>"
             elif self.error_log == 1:
                 showInfo(self, self.lang["Notice"], self.lang["Sorry, this audio file is not supported!"])
-                info += "<h3><font color=#B54643>" + self.lang["Blending Aborted!"] + "</font></h3>"
+                info += "<h3><font color=#B54643>" + self.lang["Rendering Aborted!"] + "</font></h3>"
             elif self.error_log == 2:
                 showInfo(self, self.lang["Notice"], self.lang["FFMPEG not found, please install FFMPEG!"])
-                info += "<h3><font color=#B54643>" + self.lang["Blending Aborted!"] + "</font></h3>"
+                info += "<h3><font color=#B54643>" + self.lang["Rendering Aborted!"] + "</font></h3>"
             else:
                 info += "<h3><font color=#40874A>" + self.lang["Mission Complete!"] + "</font></h3>"
 
@@ -360,7 +362,7 @@ class MainWindow(QtWidgets.QWidget):
     def closeEvent(self, event):
         global close_app
         if self.isRunning:
-            showInfo(self, self.lang["Notice"], self.lang["Please stop blending before quit!"])
+            showInfo(self, self.lang["Notice"], self.lang["Please stop rendering before quit!"])
             event.ignore()
         elif self.resetLang:
             global reset_lang
@@ -467,9 +469,12 @@ def saveConfig():
     try:
         with open(config_path, 'wb') as handle:
             pickle.dump(config, handle, protocol=pickle.HIGHEST_PROTOCOL)
-            print("save config")
+        with open(config_path, "rb") as handle:
+            config_test = pickle.load(handle)
+            if config_test["__version__"] != __version__:
+                raise Exception("AuthorityError")
     except:
-        print("Cannot Save Config")
+        showInfo(appMainWindow, appMainWindow.lang["Notice"], appMainWindow.lang["Error! Cannot save config!"])
 
 
 if __name__ == '__main__':

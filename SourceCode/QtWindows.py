@@ -42,9 +42,9 @@ class MainMenu(QtWidgets.QWidget):
         self.btn_spec_color = genButton(self, self.lang["Spectrum Color"], None, self.btn_spec_color_release)
         VBlayout.addWidget(self.btn_spec_color)
 
-        VBlayout.addWidget(genLabel(self, self.lang["Blend"]))
+        VBlayout.addWidget(genLabel(self, self.lang["Render"]))
 
-        self.btn_blend = genButton(self, self.lang["Ready to Blend"], None, self.btn_blend_release, style=4)
+        self.btn_blend = genButton(self, self.lang["Ready to Render"], None, self.btn_blend_release, style=4)
         VBlayout.addWidget(self.btn_blend)
 
         self.btn_about = genButton(self, self.lang["About FVisualizer"], None, self.btn_about_release)
@@ -117,7 +117,7 @@ class MainMenu(QtWidgets.QWidget):
             if os.path.isfile(self.parent.vdic["sound_path"]):
                 self.parent.blendWindow.show()
                 return
-        showInfo(self, self.lang["Cannot Blend"], self.lang["Please select the correct audio file!"], False)
+        showInfo(self, self.lang["Cannot Render"], self.lang["Please select the correct audio file!"], False)
 
     def btn_about_release(self):
         self.parent.aboutWindow.show()
@@ -138,9 +138,12 @@ class AudioSettingWindow(QtWidgets.QWidget):
         VBlayout.setAlignment(QtCore.Qt.AlignTop)
         items_prea = {
             self.lang["-Please Select-"]: -1,
-            self.lang["Music-HQ"] + " (320k)": [320, 20, 4000, False],
-            self.lang["Music-MQ"] + " (128k)": [128, 20, 4000, False],
-            self.lang["Music-LQ"] + " (48k)": [48, 20, 4000, False],
+            self.lang["Pop Music-HQ"] + " (320k)": [320, 16, 4000, False],
+            self.lang["Pop Music-MQ"] + " (128k)": [128, 16, 4000, False],
+            self.lang["Pop Music-LQ"] + " (48k)": [48, 16, 4000, False],
+            self.lang["Piano-HQ"] + " (320k)": [320, 20, 2700, False],
+            self.lang["Piano-MQ"] + " (128k)": [128, 20, 2700, False],
+            self.lang["Piano-LQ"] + " (48k)": [48, 20, 2700, False],
             self.lang["Voice-HQ"] + " (320k)": [320, 20, 3000, True],
             self.lang["Voice-MQ"] + " (128k)": [128, 40, 2500, True],
             self.lang["Voice-LQ"] + " (48k)": [48, 80, 2000, True],
@@ -640,23 +643,28 @@ class SpectrumStyleWindow(QtWidgets.QWidget):
 
         style_dic = {
             self.lang["Solid Line"]: 0,
+            self.lang["Solid Line: Center"]:19,
+            self.lang["Solid Line: Reverse"]:20,
             self.lang["Dot Line"]: 1,
             self.lang["Single Dot"]: 2,
             self.lang["Double Dot"]: 7,
+            self.lang["Double Dot: Center"]:21,
+            self.lang["Double Dot: Reverse"]: 22,
             self.lang["Concentric"]: 8,
             self.lang["Line Graph"]: 17,
-            self.lang["Classic 1"]: 9,
-            self.lang["Classic 2"]: 10,
-            self.lang["Classic 3"]: 15,
-            self.lang["Classic 4"]: 16,
-            self.lang["Classic Dot 1"]: 11,
-            self.lang["Classic Dot 2"]: 12,
-            self.lang["Classic Dot 3"]: 13,
-            self.lang["Classic Dot 4"]: 14,
-            self.lang["Stem Plot 1"]: 3,
-            self.lang["Stem Plot 2"]: 4,
-            self.lang["Stem Plot 3"]: 5,
-            self.lang["Stem Plot 4"]: 6,
+            self.lang["Zooming Circles"]: 18,
+            self.lang["Classic Line: Center"]: 9,
+            self.lang["Classic Line: Bottom"]: 10,
+            self.lang["Classic Rectangle: Center"]: 15,
+            self.lang["Classic Rectangle: Bottom"]: 16,
+            self.lang["Classic Round Dot: Center"]: 11,
+            self.lang["Classic Round Dot: Bottom"]: 12,
+            self.lang["Classic Square Dot: Center"]: 13,
+            self.lang["Classic Square Dot: Bottom"]: 14,
+            self.lang["Stem Plot: Solid Single"]: 3,
+            self.lang["Stem Plot: Solid Double"]: 4,
+            self.lang["Stem Plot: Dashed Single"]: 5,
+            self.lang["Stem Plot: Dashed Double"]: 6,
             self.lang["No Spectrum"]: -1,
         }
 
@@ -746,11 +754,11 @@ class BlendWindow(QtWidgets.QWidget):
         VBlayout.addWidget(self.prgbar)
         self.prgbar.hide()
 
-        self.btn_stop = genButton(self, self.lang["Stop Blending"], None, self.btn_stop_release, style=3)
+        self.btn_stop = genButton(self, self.lang["Stop Rendering"], None, self.btn_stop_release, style=3)
         VBlayout.addWidget(self.btn_stop)
         self.btn_stop.hide()
 
-        self.btn_blend = genButton(self, self.lang["Start Blending"], None, self.btn_blend_release, style=4)
+        self.btn_blend = genButton(self, self.lang["Start Rendering"], None, self.btn_blend_release, style=4)
         VBlayout.addWidget(self.btn_blend)
 
         self.btn_back = genButton(self, self.lang["Back to Main Menu"], None, self.btn_back_release, "Escape")
@@ -822,7 +830,7 @@ class BlendWindow(QtWidgets.QWidget):
         self.prgbar.setValue(0)
 
     def btn_stop_release(self):
-        reply = showInfo(self, self.lang["Notice"], self.lang["Are you sure to stop blending?"], True)
+        reply = showInfo(self, self.lang["Notice"], self.lang["Are you sure to stop rendering?"], True)
         if reply:
             self.parent.stopBlending()
             self.btn_stop.setEnabled(False)
@@ -834,9 +842,12 @@ class BlendWindow(QtWidgets.QWidget):
             self.le_path.setEnabled(False)
             self.btn_output_path.setEnabled(False)
             loop = QtCore.QEventLoop()
-            QtCore.QTimer.singleShot(50, loop.quit)
+            QtCore.QTimer.singleShot(30, loop.quit)
             loop.exec_()
             self.prgbar.show()
+            loop = QtCore.QEventLoop()
+            QtCore.QTimer.singleShot(30, loop.quit)
+            loop.exec_()
             self.btn_stop.show()
             self.btn_stop.setEnabled(True)
 
@@ -844,9 +855,12 @@ class BlendWindow(QtWidgets.QWidget):
             self.btn_stop.hide()
             self.prgbar.hide()
             loop = QtCore.QEventLoop()
-            QtCore.QTimer.singleShot(50, loop.quit)
+            QtCore.QTimer.singleShot(30, loop.quit)
             loop.exec_()
             self.btn_back.show()
+            loop = QtCore.QEventLoop()
+            QtCore.QTimer.singleShot(30, loop.quit)
+            loop.exec_()
             self.btn_blend.show()
             self.le_path.setEnabled(True)
             self.btn_output_path.setEnabled(True)
@@ -883,7 +897,6 @@ class AboutWindow(QtWidgets.QWidget):
         self.logo.setAlignment(QtCore.Qt.AlignCenter)
         VBlayout.addWidget(self.logo)
 
-        VBlayout.addWidget(genLabel(self, self.lang["About"] + " Fanseline Visualizer"))
         self.textview = QtWidgets.QTextBrowser(self)
         VBlayout.addWidget(self.textview)
         self.textview.setHtml(self.parent.getIntro())

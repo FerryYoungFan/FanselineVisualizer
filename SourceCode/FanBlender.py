@@ -7,7 +7,7 @@ Audio Visualizer
 By Twitter @FanKetchup
 https://github.com/FerryYoungFan/FanselineVisualizer
 """
-__version__ = "1.1.0"  # Work with PYQT5
+__version__ = "1.1.1"  # Work with PYQT5
 from FanWheels_PIL import *
 from FanWheels_ffmpeg import *
 from FanAudioVisualizer import AudioVisualizer, AudioAnalyzer
@@ -204,7 +204,7 @@ class FanBlender:
             return True
 
     def setAmplify(self):
-        return self.scalar * 7 * np.sqrt(self.bins / 80) * np.power(1500 / (self.fq_up - self.fq_low), 0.5)
+        return self.scalar * 10 * np.sqrt(self.bins / 80) * np.power(1500 / (self.fq_up - self.fq_low), 0.5)
 
     def ensure_dir(self, file_path):
         directory = os.path.dirname(file_path)
@@ -618,7 +618,7 @@ if __name__ == '__main__':
     saturation: Color Saturation of Spectrum
     scalar: Sensitivity (Scalar) of Analyzer (Default:1.0)
     smooth: Stabilize Spectrum (Range: 0 - 10)
-    style: 0-17 for Different Spectrum Styles (-1 for None)
+    style: 0-22 for Different Spectrum Styles (-1 for None)
     linewidth: Relative Width of Spectrum Line (0.5-20)
     """
     fb.setVideoInfo(width=480, height=480, fps=30.0, br_Mbps=1.0,

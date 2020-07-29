@@ -46,7 +46,7 @@ if __name__ == '__main__':
     saturation: Color Saturation of Spectrum
     scalar: Sensitivity (Scalar) of Analyzer (Default:1.0)
     smooth: Stabilize Spectrum (Range: 0 - 10)
-    style: 0-17 for Different Spectrum Styles (-1 for None)
+    style: 0-22 for Different Spectrum Styles (-1 for None)
     linewidth: Relative Width of Spectrum Line (0.5-20)
     """
     fb.setVideoInfo(width=480, height=480, fps=30.0, br_Mbps=1.0,
