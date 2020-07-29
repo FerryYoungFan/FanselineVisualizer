@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 from QtWheels import *
 from QtImages import img_pack, pil2qt
 from PIL import Image

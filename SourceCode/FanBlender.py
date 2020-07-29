@@ -18,6 +18,7 @@ import numpy as np
 
 import threading, os, sys
 from PyQt5 import QtCore
+# Notice: You can use time.sleep() if you are not using PyQt5
 
 
 class blendingThread(threading.Thread):
@@ -73,15 +74,18 @@ class encodingThread(threading.Thread):
                     realTimePrev = None
                 self.parent.log("Processing:{0}/{1}".format(self.parent.encoder_pt, self.parent.total_frames))
                 self.parent.progress(self.parent.encoder_pt, self.parent.total_frames)
+
+                # The following 3 lines can be replaced by time.sleep(0.5) if you are not using PyQt5
                 loop = QtCore.QEventLoop()
                 QtCore.QTimer.singleShot(500, loop.quit)
                 loop.exec_()
+
         self.parent.previewRealTime(realTimePrev)
         realTimePrev = None
         self.parent.log("Processing:{0}/{1}".format(self.parent.encoder_pt, self.parent.total_frames))
         self.parent.progress(self.parent.encoder_pt, self.parent.total_frames)
         if self.parent.encoder_pt >= self.parent.total_frames:
-            self.parent.log("Blending Done!")
+            self.parent.log("Rendering Done!")
 
 
 class FanBlender:
@@ -375,7 +379,7 @@ class FanBlender:
     def genBackground(self, forceRefresh=False):
         self.calcRel()
         if not self.bg_blended or forceRefresh:
-            self.log("Blending Background...")
+            self.log("Rendering Background...")
 
             image = openImage(self.image_path, "RGBA", ["Source/fallback.png", "Source/fallback.jpg", (127, 127, 127)])
             bg = openImage(self.bg_path, "RGB", [None])
@@ -402,7 +406,7 @@ class FanBlender:
                 else:
                     background = genBG(bg, size=(self.frame_width, self.frame_height), blur=0, bright=1.0)
             self.bg_img = background
-            self.log("Blending Background... Done!")
+            self.log("Rendering Background... Done!")
 
         background = self.bg_img.copy()
         if self.bg_mode >= -1 and not self.bg_mode == 2:
@@ -510,7 +514,7 @@ class FanBlender:
         if thread_num < 4:
             thread_num = 4
 
-        print("CPU Thread for Blending: " + str(thread_num))
+        print("CPU Thread for Rendering: " + str(thread_num))
 
         self.frame_lock = np.zeros(self.total_frames, dtype=np.uint8)
 
@@ -536,7 +540,7 @@ class FanBlender:
                 combineVideo(self._temp_video_path, self.sound_path, self.output_path, audio_br, self.audio_normal)
             self.log("Combining Videos... Done!")
         else:
-            self.log("Blending Aborted!")
+            self.log("Rendering Aborted!")
 
         self.removeTemp()
         self.freezeConsole(False)
@@ -583,7 +587,7 @@ def getPath(fileName):  # for different operating systems
 if __name__ == '__main__':
     # Example of Using FanBlender
 
-    fb = FanBlender()  # Initialize Blender
+    fb = FanBlender()  # Initialize Blender (Render)
 
     fb.setFilePath(image_path="Source/fallback.png",
                    bg_path="Source/background.jpg",
@@ -633,6 +637,6 @@ if __name__ == '__main__':
     """
     fb.setAudioInfo(normal=False, br_kbps=192)  # Audio info
 
-    fb.previewBackground(localViewer=True)  # Preview before blending
+    fb.previewBackground(localViewer=True)  # Preview before rendering
 
-    fb.runBlending()  # Blend the Video
+    fb.runBlending()  # Render the video

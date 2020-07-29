@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
 from FanBlender import FanBlender
 
 """
@@ -11,7 +12,7 @@ https://github.com/FerryYoungFan/FanselineVisualizer
 if __name__ == '__main__':
     # Example of Using FanBlender
 
-    fb = FanBlender()  # Initialize Blender
+    fb = FanBlender()  # Initialize Blender (Render)
 
     fb.setFilePath(image_path="Source/fallback.png",
                    bg_path="Source/background.jpg",
@@ -61,6 +62,6 @@ if __name__ == '__main__':
     """
     fb.setAudioInfo(normal=False, br_kbps=192)  # Audio info
 
-    fb.previewBackground(localViewer=True)  # Preview before blending
+    fb.previewBackground(localViewer=True)  # Preview before rendering
 
-    fb.runBlending()  # Blend the Video
+    fb.runBlending()  # Render the video

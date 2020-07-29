@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 from QtWheels import *
 import threading, os
 from sys import platform

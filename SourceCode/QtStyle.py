@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 stylepack = """
     QWidget {
         background-color: #202020;

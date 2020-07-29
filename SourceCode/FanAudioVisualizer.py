@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 from FanWheels_PIL import *
 import numpy as np
 from pydub import AudioSegment

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
 lang_cn_s = {
     "Fanseline Visualizer": "Fanseline Visualizer",
     "Stop Rendering": "取消渲染",
