@@ -46,7 +46,7 @@ if __name__ == '__main__':
     bright: Brightness of Spectrum
     saturation: Color Saturation of Spectrum
     scalar: Sensitivity (Scalar) of Analyzer (Default:1.0)
-    smooth: Stabilize Spectrum (Range: 0 - 10)
+    smooth: Stabilize Spectrum (Range: 0 - 15)
     style: 0-22 for Different Spectrum Styles (-1 for None)
     linewidth: Relative Width of Spectrum Line (0.5-20)
     """

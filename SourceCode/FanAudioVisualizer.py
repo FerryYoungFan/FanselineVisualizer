@@ -18,6 +18,7 @@ class AudioAnalyzer:
 
         self.fps = fps
         self.totalFrames = self.getTotalFrames()
+        self.hist_stack = [None] * self.totalFrames
 
     def fftAnalyzer(self, start_p, stop_p, fq_low=20, fq_up=6000, bins=80):
         freq_array = np.zeros(bins)
@@ -34,23 +35,19 @@ class AudioAnalyzer:
         yf = np.fft.fft(y)
         yf_fq = 2.0 / N * np.abs(yf[:N // 2])
         xf = np.linspace(0.0, 1.0 / (2.0 * self.T), N // 2)  # Frequency domain: 0 to 1/(2T)
-        freq_step = (fq_up - fq_low) / bins  # 'Collect' (sum) for each point
-        freq_chunck = xf[1] - xf[0]
+        yf_cut = yf_fq[np.where(np.logical_and(xf >= fq_low, xf <= fq_up))]
+        xf_cut = xf[np.where(np.logical_and(xf >= fq_low, xf <= fq_up))]
+        xf_log = squareSpace(1, len(yf_cut) + 1, bins + 1)
         for i in range(bins):
-            win_low = fq_low + freq_step * i
-            win_up = win_low + freq_step
-            freq_middle = win_low + (win_up - win_low) / 2
-            factor = 1  # This factor is used for psychological loudness scaling
-            if freq_middle > 0:
-                factor = 0.3 + 0.7 * np.sqrt(freq_middle / 3000)
-
-            win_low = round(win_low / freq_chunck / 2)
-            win_up = round(win_up / freq_chunck / 2)
-            if win_low >= xf.shape[0]:
-                break
-            if win_up >= xf.shape[0]:
-                win_up = xf.shape[0] - 1
-            freq_array[i] = np.sum(yf_fq[win_low:win_up]) * factor
+            win_low, win_up = int(xf_log[i]), int(xf_log[i + 1])
+            if win_low < 0:
+                win_low = 0
+            if win_up > len(yf_cut) - 1:
+                win_up = len(yf_cut) - 1
+            if win_up - win_low > 0:
+                freq_array[i] = np.sum(yf_cut[win_low:win_up]) * psyMode(xf_cut[win_low])
+            else:
+                freq_array[i] = 0
         return freq_array
 
     def getSampleRate(self):
@@ -67,30 +64,53 @@ class AudioAnalyzer:
             smooth = 0
 
         smooth = int(round(smooth * self.fps / 30))
-        if smooth > 1:
+        if smooth >= 1 + 4:
             fcount = 0
             freq_acc = np.zeros(bins)
-            for i in range(smooth):
+            for i in range(smooth - 4 + 1):
                 fcount = fcount + 2
-                left, right = self.getRange(index - i, fq_low)
-                freq_acc += self.fftAnalyzer(left, right, fq_low, fq_up, bins)
-                left, right = self.getRange(index + i, fq_low)
-                freq_acc += self.fftAnalyzer(left, right, fq_low, fq_up, bins)
+                if index - i < 0:
+                    pass
+                else:
+                    if self.hist_stack[index - i] is None:
+                        left, right = self.getRange(index - i, smooth)
+                        self.hist_stack[index - i] = self.fftAnalyzer(left, right, fq_low, fq_up, bins)
+                    freq_acc += self.hist_stack[index - i]
+                if index + i > len(self.hist_stack) - 1:
+                    pass
+                else:
+                    if self.hist_stack[index + i] is None:
+                        left, right = self.getRange(index + i, smooth)
+                        self.hist_stack[index + i] = self.fftAnalyzer(left, right, fq_low, fq_up, bins)
+                    freq_acc += self.hist_stack[index + i]
             return freq_acc / fcount
 
         else:
-            left, right = self.getRange(index, fq_low)
+            left, right = self.getRange(index, smooth)
             return self.fftAnalyzer(left, right, fq_low, fq_up, bins)
 
-    def getRange(self, idx, low):
+    def getRange(self, idx, smooth=0):  # Get FFT range
         if idx < 0:
             idx = -5
         if idx > self.totalFrames:
             idx = -5
         middle = idx * self.getSampleRate() / self.fps
-        offset = self.sample_rate / low
-        lt = int(round(middle) - 0.5 * offset)
-        rt = int(round(middle + 2.5 * offset))
+        offset = self.sample_rate / 20
+        if smooth == 1:
+            lt = int(round(middle - 1 * offset))
+            rt = int(round(middle + 2 * offset))
+        elif smooth == 2:
+            lt = int(round(middle - 2 * offset))
+            rt = int(round(middle + 2 * offset))
+        elif 2 < smooth <= 5:
+            lt = int(round(middle - 2 * offset))
+            rt = int(round(middle + 4 * offset))
+        elif smooth > 5:
+            lt = int(round(middle - 3 * offset))
+            rt = int(round(middle + 6 * offset))
+        else:
+            lt = int(round(middle - 1 * offset))
+            rt = int(round(middle + 1 * offset))
         return lt, rt
 
 
@@ -191,9 +211,7 @@ class AudioVisualizer:
     def getFrame(self, hist, amplify=5, color_mode="color4x", bright=1.0, saturation=1.0, use_glow=True, rotate=0.0,
                  fps=30.0, frame_pt=0, bg_mode=0, fg_img=None):
         bins = hist.shape[0]
-        hist = np.clip(hist * amplify, 0, 1)
-
-        ratio = 2  # antialiasing ratio
+        ratio = 2  # Antialiasing ratio
         line_thick = int(round(self.line_thick * ratio))
         line_thick_bold = int(round(self.line_thick * ratio * 1.5))
         line_thick_slim = int(round(self.line_thick * ratio / 2))
@@ -208,14 +226,20 @@ class AudioVisualizer:
 
         line_graph_prev = None
 
-        if self.style in [0, 1, 2, 3, 4, 5, 6, 7]:
-            hist = loopAverage(hist)
+        if self.style in [0, 1, 2, 3, 4, 5, 6, 7, 18, 19, 20, 21, 22]:
+            hist = np.power(hist * 1.5, 1.5)
+        hist = np.clip(hist * amplify, 0, 1)
 
-        for i in range(bins):
-
+        for i in range(bins):  # Draw Spectrum
             color = getColor(bins, i, color_mode, bright, saturation)
+            if self.style == 0:  # Solid Line
+                line_points = [self.getAxis(bins, i, self.rad_min, ratio),
+                               self.getAxis(bins, i, self.rad_min + hist[i] * self.rad_div, ratio)]
+                draw.line(line_points, width=line_thick, fill=color)
+                circle(draw, line_points[0], line_thick_slim, color)
+                circle(draw, line_points[1], line_thick_slim, color)
 
-            if self.style == 1:  # Dot Line
+            elif self.style == 1:  # Dot Line
                 p_gap = line_thick_bold
                 p_size = line_thick_bold
                 p_n = int(((hist[i] * self.rad_div) + p_gap) / (p_gap + p_size))
@@ -223,21 +247,25 @@ class AudioVisualizer:
                 for ip in range(p_n):
                     p_rad = (p_gap + p_size) * ip
                     circle(draw, self.getAxis(bins, i, self.rad_min + p_rad, ratio), line_thick_bold, color)
+
             elif self.style == 2:  # Single Dot
                 circle(draw, self.getAxis(bins, i, self.rad_min + hist[i] * self.rad_div, ratio), line_thick_bold,
                        color)
+
             elif self.style == 3:  # Stem Plot: Solid Single
                 line_points = [self.getAxis(bins, i, self.rad_min, ratio),
                                self.getAxis(bins, i, self.rad_min + hist[i] * self.rad_div, ratio)]
                 draw.line(line_points, width=line_thick, fill=color)
                 circle(draw, line_points[0], line_thick_slim, color)
                 circle(draw, line_points[1], line_thick_bold, color)
+
             elif self.style == 4:  # Stem Plot: Solid Double
                 line_points = [self.getAxis(bins, i, self.rad_min, ratio),
                                self.getAxis(bins, i, self.rad_min + hist[i] * self.rad_div, ratio)]
                 draw.line(line_points, width=line_thick, fill=color)
                 circle(draw, line_points[0], line_thick_bold, color)
                 circle(draw, line_points[1], line_thick_bold, color)
+
             elif self.style == 5:  # Stem Plot: Dashed Single
                 p_gap = line_thick_slim
                 p_size = line_thick_slim
@@ -247,6 +275,7 @@ class AudioVisualizer:
                     circle(draw, self.getAxis(bins, i, self.rad_min + p_rad, ratio), line_thick_slim, color)
                 circle(draw, self.getAxis(bins, i, self.rad_min + hist[i] * self.rad_div, ratio), line_thick_bold,
                        color)
+
             elif self.style == 6:  # Stem Plot: Dashed Double
                 p_gap = line_thick_slim
                 p_size = line_thick_slim
@@ -257,10 +286,12 @@ class AudioVisualizer:
                 circle(draw, self.getAxis(bins, i, self.rad_min, ratio), line_thick_bold, color)
                 circle(draw, self.getAxis(bins, i, self.rad_min + hist[i] * self.rad_div, ratio), line_thick_bold,
                        color)
+
             elif self.style == 7:  # Double Dot
                 circle(draw, self.getAxis(bins, i, self.rad_min, ratio), line_thick_bold, color)
                 circle(draw, self.getAxis(bins, i, self.rad_min + hist[i] * self.rad_div, ratio), line_thick_bold,
                        color)
+
             elif self.style == 8:  # Concentric
                 if i % 12 == 0:
                     lower = i
@@ -414,7 +445,7 @@ class AudioVisualizer:
                 center_next = self.getAxis(bins, i + 1, center_rad, ratio)
                 center_gap = np.sqrt((center_next[0] - center[0]) ** 2 + (center_next[1] - center[1]) ** 2) / 2 * ratio
                 max_gap = min(self.rad_div * ratio, center_gap)
-                factor = np.clip(self.line_thick * 30 / min(self.width, self.height), 0.0, 1.0)
+                factor = np.power(np.clip(self.line_thick * 20 / min(self.width, self.height), 0.0, 1.0), 0.3)
                 rad_draw = int(round(hist[i] * factor * max_gap / 2))
                 circle(draw, center, rad_draw, color)
 
@@ -448,18 +479,11 @@ class AudioVisualizer:
                 circle(draw, self.getAxis(bins, i, self.rad_min + self.rad_div, ratio), line_thick_bold,
                        color)
 
-
-            else:  # Othewise (0): Solid Line
-                line_points = [self.getAxis(bins, i, self.rad_min, ratio),
-                               self.getAxis(bins, i, self.rad_min + hist[i] * self.rad_div, ratio)]
-                draw.line(line_points, width=line_thick, fill=color)
-                circle(draw, line_points[0], line_thick_slim, color)
-                circle(draw, line_points[1], line_thick_slim, color)
+            else:  # Othewise (-1): No Spectrum
+                pass
 
         if use_glow:
             canvas = glowFx(canvas, self.blur * ratio, 1.5)
-            # canvas_blur = canvas.filter(ImageFilter.BoxBlur(radius=self.blur * ratio))
-            # canvas = ImageChops.add(canvas, canvas_blur)
 
         canvas = canvas.resize((self.width, self.height), Image.ANTIALIAS)
 
@@ -478,33 +502,37 @@ class AudioVisualizer:
 
     def getAxis(self, bins, index, radius, ratio):
         div = 2 * np.pi / bins
-        angle = div * index - np.pi / 2 - np.pi / 3
+        angle = div * index - np.pi / 2 - np.pi * 5 / 6
         ox = (self.mdpx + radius * np.cos(angle)) * ratio
         oy = (self.mdpy + radius * np.sin(angle)) * ratio
         return ox, oy
 
 
-def loopAverage(arr_in, ratio=0.01):
-    if ratio < 0:
-        ratio = 0
-    elif ratio > 1:
-        ratio = 1
-    avg_size = round(len(arr_in) * ratio)
-    norm_sig = avg_size * 0.5
-    k_size = int(2 * avg_size + 1)
-    if k_size <= 0 or norm_sig <= 0:
-        return arr_in
+def squareSpace(start, end, num):
+    sqrt_start = np.sqrt(start)
+    sqrt_end = np.sqrt(end)
+    sqrt_space = np.linspace(sqrt_start, sqrt_end, num=num)
+    return np.round(np.power(sqrt_space, 2)).astype(int)
 
-    arr = np.concatenate((arr_in[-avg_size:], arr_in, arr_in[:avg_size]), axis=None)
-    arr_out = arr_in.copy()
 
-    norm_x = np.arange(-avg_size, avg_size + 1)
+def linearRange(startx, endx, starty, endy, x):
+    return (endy - starty) / (endx - startx) * (x - startx) + starty
 
-    norm_y = 1 / (norm_sig * np.sqrt(2 * np.pi)) * np.exp(-norm_x * norm_x / (2 * norm_sig * norm_sig))
-    for i in range(len(arr_out)):
-        arr_out[i] = np.sum(arr[i:i + k_size] * norm_y)
-    return arr_out
+
+psy_dic = [[10, 200, 2.0, 1.0],
+           [200, 600, 1.0, 1.2],
+           [600, 2000, 1.2, 1.3],
+           [2000, 6000, 1.3, 1.5],
+           [6000, 15000, 1.5, 1.5],
+           [15000, 21000, 1.5, 0]]
+
+
+def psyMode(freq):
+    for item in psy_dic:
+        if item[0] <= freq < item[1]:
+            return linearRange(item[0], item[1], item[2], item[3], freq)
+    return 0
 
 
 if __name__ == '__main__':
-    print(loopAverage([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 0.1))
+    print(linearRange(8000, 20000, 1, 0, 10000))

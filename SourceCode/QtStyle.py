@@ -601,18 +601,18 @@ textBrowserStyle = """
         QScrollBar:horizontal {
         border: none;
         background: none;
-        height: 20px;
+        height: 12px;
         margin: 0;
     }
 
     QScrollBar::handle:horizontal {
         background: #437BB5;
-        min-width: 20px;
+        min-width: 12px;
     }
 
     QScrollBar::add-line:horizontal {
         background: none;
-        width: 20px;
+        width: 12px;
         subcontrol-position: right;
         subcontrol-origin: margin;
 
@@ -620,7 +620,7 @@ textBrowserStyle = """
 
     QScrollBar::sub-line:horizontal {
         background: none;
-        width: 20px;
+        width: 12px;
         subcontrol-position: top left;
         subcontrol-origin: margin;
         position: absolute;
@@ -628,7 +628,7 @@ textBrowserStyle = """
 
     QScrollBar:left-arrow:horizontal, QScrollBar::right-arrow:horizontal {
         width: 0px;
-        height: 20px;
+        height: 12px;
         background: #898B8D;
     }
 
@@ -640,13 +640,13 @@ textBrowserStyle = """
     QScrollBar:vertical {
         border: none;
         background: none;
-        width: 20px;
+        width: 12px;
         margin: 0 0 0 0;
     }
 
     QScrollBar::handle:vertical {
         background: #437BB5;
-        min-height: 20px;
+        min-height: 12px;
     }
 
     QScrollBar::add-line:vertical {
@@ -665,7 +665,7 @@ textBrowserStyle = """
     }
 
     QScrollBar:up-arrow:vertical, QScrollBar::down-arrow:vertical {
-        width: 20px;
+        width: 12px;
         height: 0px;
         background: #898B8D;
     }

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from PIL import Image, ImageFilter, ImageOps, ImageDraw, ImageEnhance, ImageChops, ImageFont
+from PIL import Image, ImageFilter, ImageDraw, ImageEnhance, ImageChops, ImageFont
 import os, sys
 
 
@@ -225,13 +225,53 @@ def hsv_to_rgb(h, s, v):
     if i == 5: return v, p, q
 
 
+def rgb_to_hsv(r, g, b):
+    r, g, b = r / 255.0, g / 255.0, b / 255.0
+    mx = max(r, g, b)
+    mn = min(r, g, b)
+    df = mx - mn
+    if mx == mn:
+        h = 0
+    elif mx == r:
+        h = (60 * ((g - b) / df) + 360) % 360
+    elif mx == g:
+        h = (60 * ((b - r) / df) + 120) % 360
+    elif mx == b:
+        h = (60 * ((r - g) / df) + 240) % 360
+    if mx == 0:
+        s = 0
+    else:
+        s = df / mx
+    v = mx
+    return h / 360, s, v
+
+
+def hex_to_rgb(value):
+    value = value.lstrip('#')
+    lv = len(value)
+    return tuple(int(value[i:i + lv // 3], 16) for i in range(0, lv, lv // 3))
+
+
+def rgb_to_hex(rgb):
+    return '#%02x%02x%02x' % rgb
+
+
 def glowFx(image, radius=0, brt=1.5):
     if radius > 0:
         base = image.copy()
-        image = image.filter(ImageFilter.BoxBlur(radius=radius))
-        enhancer = ImageEnhance.Brightness(image)
-        image = enhancer.enhance(brt)
-        base.paste(image, (0, 0), image)
+        image = image.filter(ImageFilter.GaussianBlur(radius=radius))
+        base = ImageChops.add(image, base)
         return base
     else:
         return image
+
+# def glowFx(image, radius=0, brt=1.5):
+#     if radius > 0:
+#         base = image.copy()
+#         image = image.filter(ImageFilter.BoxBlur(radius=radius))
+#         enhancer = ImageEnhance.Brightness(image)
+#         image = enhancer.enhance(brt)
+#         base.paste(image, (0, 0), image)
+#         return base
+#     else:
+#         return image

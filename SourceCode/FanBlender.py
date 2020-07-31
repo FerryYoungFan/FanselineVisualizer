@@ -2,12 +2,14 @@
 # -*- coding: utf-8 -*-
 
 """
-Audio Visualizer
-帆室邻音频可视化
+Fanseline Audio Visualizer
+帆室邻音频可视化视频制作工具
 By Twitter @FanKetchup
 https://github.com/FerryYoungFan/FanselineVisualizer
 """
-__version__ = "1.1.1"  # Work with PYQT5
+
+__version__ = "1.1.2"  # Work with PYQT5
+
 from FanWheels_PIL import *
 from FanWheels_ffmpeg import *
 from FanAudioVisualizer import AudioVisualizer, AudioAnalyzer
@@ -17,8 +19,7 @@ import imageio_ffmpeg
 import numpy as np
 
 import threading, os, sys
-from PyQt5 import QtCore
-# Notice: You can use time.sleep() if you are not using PyQt5
+from PyQt5 import QtCore  # Notice: You can use time.sleep() if you are not using PyQt5
 
 
 class blendingThread(threading.Thread):
@@ -208,7 +209,7 @@ class FanBlender:
             return True
 
     def setAmplify(self):
-        return self.scalar * 10 * np.sqrt(self.bins / 80) * np.power(1500 / (self.fq_up - self.fq_low), 0.5)
+        return self.scalar * 5 * np.sqrt(self.bins / 80) * np.power(1500 / (self.fq_up - self.fq_low), 0.5)
 
     def ensure_dir(self, file_path):
         directory = os.path.dirname(file_path)
@@ -329,7 +330,7 @@ class FanBlender:
             self.scalar = clip(scalar, 0.1, 10)
 
         if smooth is not None:
-            self.smooth = int(round(clip(smooth, 0, 10)))
+            self.smooth = int(round(clip(smooth, 0, 15)))
 
         if style is not None:
             self.style = style
@@ -474,13 +475,13 @@ class FanBlender:
         if not self.ffmpegCheck():
             self.freezeConsole(False)
             return
+        self.isRunning = True
         self.genAnalyzer()
         if self._temp_audio_path is None or not os.path.exists(str(self._temp_audio_path)):
             self.freezeConsole(False)
             self.audioError()
+            self.isRunning = False
             return
-
-        self.isRunning = True
 
         if self.analyzer is None:
             self.log("Error: Analyzer not found")
@@ -621,7 +622,7 @@ if __name__ == '__main__':
     bright: Brightness of Spectrum
     saturation: Color Saturation of Spectrum
     scalar: Sensitivity (Scalar) of Analyzer (Default:1.0)
-    smooth: Stabilize Spectrum (Range: 0 - 10)
+    smooth: Stabilize Spectrum (Range: 0 - 15)
     style: 0-22 for Different Spectrum Styles (-1 for None)
     linewidth: Relative Width of Spectrum Line (0.5-20)
     """

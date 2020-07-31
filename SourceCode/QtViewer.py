@@ -96,13 +96,22 @@ class PhotoViewer(QtWidgets.QGraphicsView):
     def contextMenuEvent(self, event):
         menu = QtWidgets.QMenu(self)
         menu.setStyleSheet(menuStyle)
+
+        if not self.parent.isRunning:
+            refresh = menu.addAction(self.lang["Refresh Preview"])
+            menu.addSeparator()
+        else:
+            refresh = None
         savepng = menu.addAction(self.lang["Save as PNG"])
         savejpg = menu.addAction(self.lang["Save as JPG"])
         savebmp = menu.addAction(self.lang["Save as BMP"])
+
         action = menu.exec_(self.mapToGlobal(event.pos()))
 
         if self.dragMode() == QtWidgets.QGraphicsView.ScrollHandDrag and self.img_cache is not None:
-            if action == savepng:
+            if not self.parent.isRunning and action == refresh:
+                self.parent.refreshAll()
+            elif action == savepng:
                 file_, filetype = QtWidgets.QFileDialog.getSaveFileName(self,
                                                                         self.lang["Save as PNG"],
                                                                         self.lang["Snap"] + ".png",

@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from PIL import Image
 from QtViewer import PhotoViewer, ImageSelectWindow
 from QtWindows import *
 from LanguagePack import *
 from FanBlender import FanBlender, getPath, __version__
-import time, pickle
+import threading, time, pickle
 
 
 class InfoBridge:
@@ -79,7 +78,7 @@ class MainWindow(QtWidgets.QWidget):
         self.videoSetting = VideoSettingWindow(self)
         self.textWindow = TextWindow(self)
         self.imageSetting = ImageSettingWindow(self)
-        self.sepctrumColor = SpectrumColorWindow(self)
+        self.spectrumColor = SpectrumColorWindow(self)
         self.spectrumStyle = SpectrumStyleWindow(self)
         self.blendWindow = BlendWindow(self)
         self.aboutWindow = AboutWindow(self)
@@ -93,7 +92,7 @@ class MainWindow(QtWidgets.QWidget):
         VBlayout_r.addWidget(self.videoSetting)
         VBlayout_r.addWidget(self.textWindow)
         VBlayout_r.addWidget(self.imageSetting)
-        VBlayout_r.addWidget(self.sepctrumColor)
+        VBlayout_r.addWidget(self.spectrumColor)
         VBlayout_r.addWidget(self.spectrumStyle)
         VBlayout_r.addWidget(self.blendWindow)
         VBlayout_r.addWidget(self.aboutWindow)
@@ -169,7 +168,7 @@ class MainWindow(QtWidgets.QWidget):
         self.videoSetting.hide()
         self.textWindow.hide()
         self.imageSetting.hide()
-        self.sepctrumColor.hide()
+        self.spectrumColor.hide()
         self.spectrumStyle.hide()
         self.blendWindow.hide()
         self.aboutWindow.hide()
@@ -243,6 +242,9 @@ class MainWindow(QtWidgets.QWidget):
         else:
             brief += self.lang["OFF"]
         brief += "<br/>"
+        brief += self.lang["Analyzer Range:"] + " " + str(self.vdic["lower"]) + " ~ " + str(
+            self.vdic["upper"]) + " Hz<br/>"
+        brief += self.lang["Spectrum Stabilize:"] + " " + str(self.vdic["smooth"]) + "<br/>"
         for key, item in self.imageSetting.items_bg_mode.items():
             if [self.vdic["blur_bg"], self.vdic["bg_mode"]] == item:
                 brief += self.lang["BG Mode:"] + " " + key
@@ -406,13 +408,13 @@ vdic_pre = {
     "text_color": (255, 255, 255, 255),
     "text_glow": True,
     "bins": 48,
-    "lower": 20,
+    "lower": 48,
     "upper": 4000,
     "color": "color4x",
     "bright": 0.6,
     "saturation": 0.5,
     "scalar": 1.0,
-    "smooth": 2,
+    "smooth": 5,
     "style": 0,
     "linewidth": 1.0,
     "width": 480,
