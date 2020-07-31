@@ -3,7 +3,7 @@
  Convert audio files to visualized video  
  将音频文件转化为可视化视频  
  
-  Ver.1.1.1  发行版 Release for Windows, macOS, Ubuntu X64:  
+  Ver.1.1.2  发行版 Release for Windows, macOS, Ubuntu X64:  
 https://github.com/FerryYoungFan/FanselineVisualizer/releases
  
  See How to use:  
