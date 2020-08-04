@@ -45,7 +45,7 @@ class AudioAnalyzer:
             if win_up > len(yf_cut) - 1:
                 win_up = len(yf_cut) - 1
             if win_up - win_low > 0:
-                freq_array[i] = np.sum(yf_cut[win_low:win_up]) * psyMode(xf_cut[win_low])
+                freq_array[i] = np.sum(yf_cut[win_low:win_up]) * psyModel((xf_cut[win_low] + xf_cut[win_low]) / 2)
             else:
                 freq_array[i] = 0
         return freq_array
@@ -242,11 +242,12 @@ class AudioVisualizer:
             elif self.style == 1:  # Dot Line
                 p_gap = line_thick_bold
                 p_size = line_thick_bold
-                p_n = int(((hist[i] * self.rad_div) + p_gap) / (p_gap + p_size))
-                circle(draw, self.getAxis(bins, i, self.rad_min, ratio), line_thick_bold, color)
-                for ip in range(p_n):
-                    p_rad = (p_gap + p_size) * ip
-                    circle(draw, self.getAxis(bins, i, self.rad_min + p_rad, ratio), line_thick_bold, color)
+                if p_gap + p_size > 0:
+                    p_n = int(((hist[i] * self.rad_div) + p_gap) / (p_gap + p_size))
+                    circle(draw, self.getAxis(bins, i, self.rad_min, ratio), line_thick_bold, color)
+                    for ip in range(p_n):
+                        p_rad = (p_gap + p_size) * ip
+                        circle(draw, self.getAxis(bins, i, self.rad_min + p_rad, ratio), line_thick_bold, color)
 
             elif self.style == 2:  # Single Dot
                 circle(draw, self.getAxis(bins, i, self.rad_min + hist[i] * self.rad_div, ratio), line_thick_bold,
@@ -269,23 +270,25 @@ class AudioVisualizer:
             elif self.style == 5:  # Stem Plot: Dashed Single
                 p_gap = line_thick_slim
                 p_size = line_thick_slim
-                p_n = int(((hist[i] * self.rad_div) + p_size) / (p_gap + p_size))
-                for ip in range(p_n):
-                    p_rad = (p_gap + p_size) * ip
-                    circle(draw, self.getAxis(bins, i, self.rad_min + p_rad, ratio), line_thick_slim, color)
-                circle(draw, self.getAxis(bins, i, self.rad_min + hist[i] * self.rad_div, ratio), line_thick_bold,
-                       color)
+                if p_gap + p_size > 0:
+                    p_n = int(((hist[i] * self.rad_div) + p_size) / (p_gap + p_size))
+                    for ip in range(p_n):
+                        p_rad = (p_gap + p_size) * ip
+                        circle(draw, self.getAxis(bins, i, self.rad_min + p_rad, ratio), line_thick_slim, color)
+                    circle(draw, self.getAxis(bins, i, self.rad_min + hist[i] * self.rad_div, ratio), line_thick_bold,
+                           color)
 
             elif self.style == 6:  # Stem Plot: Dashed Double
                 p_gap = line_thick_slim
                 p_size = line_thick_slim
-                p_n = int(((hist[i] * self.rad_div) + p_size) / (p_gap + p_size))
-                for ip in range(p_n):
-                    p_rad = (p_gap + p_size) * ip
-                    circle(draw, self.getAxis(bins, i, self.rad_min + p_rad, ratio), line_thick_slim, color)
-                circle(draw, self.getAxis(bins, i, self.rad_min, ratio), line_thick_bold, color)
-                circle(draw, self.getAxis(bins, i, self.rad_min + hist[i] * self.rad_div, ratio), line_thick_bold,
-                       color)
+                if p_gap + p_size > 0:
+                    p_n = int(((hist[i] * self.rad_div) + p_size) / (p_gap + p_size))
+                    for ip in range(p_n):
+                        p_rad = (p_gap + p_size) * ip
+                        circle(draw, self.getAxis(bins, i, self.rad_min + p_rad, ratio), line_thick_slim, color)
+                    circle(draw, self.getAxis(bins, i, self.rad_min, ratio), line_thick_bold, color)
+                    circle(draw, self.getAxis(bins, i, self.rad_min + hist[i] * self.rad_div, ratio), line_thick_bold,
+                           color)
 
             elif self.style == 7:  # Double Dot
                 circle(draw, self.getAxis(bins, i, self.rad_min, ratio), line_thick_bold, color)
@@ -340,13 +343,14 @@ class AudioVisualizer:
                 x_offset = gap * i + self.mdpx * ratio - self.rad_max * ratio
                 p_gap = line_thick_bold * 2
                 p_size = line_thick_bold
-                p_n = int((low - mid_y + p_gap) / (p_gap + p_size))
-                if p_n < 1:
-                    p_n = 1
-                for ip in range(p_n):
-                    d_y = ip * (p_gap + p_size)
-                    circle(draw, (x_offset, mid_y + d_y), line_thick_bold, color)
-                    circle(draw, (x_offset, mid_y - d_y), line_thick_bold, color)
+                if p_gap + p_size > 0:
+                    p_n = int((low - mid_y + p_gap) / (p_gap + p_size))
+                    if p_n < 1:
+                        p_n = 1
+                    for ip in range(p_n):
+                        d_y = ip * (p_gap + p_size)
+                        circle(draw, (x_offset, mid_y + d_y), line_thick_bold, color)
+                        circle(draw, (x_offset, mid_y - d_y), line_thick_bold, color)
 
             elif self.style == 12:  # Classic Round Dot: Bottom
                 mid_y = self.mdpy * ratio
@@ -357,12 +361,13 @@ class AudioVisualizer:
                 x_offset = gap * i + self.mdpx * ratio - self.rad_max * ratio
                 p_gap = line_thick_bold * 2
                 p_size = line_thick_bold
-                p_n = int((low - up + p_gap) / (p_gap + p_size))
-                if p_n < 1:
-                    p_n = 1
-                for ip in range(p_n):
-                    p_y = low - ip * (p_gap + p_size)
-                    circle(draw, (x_offset, p_y), line_thick_bold, color)
+                if p_gap + p_size > 0:
+                    p_n = int((low - up + p_gap) / (p_gap + p_size))
+                    if p_n < 1:
+                        p_n = 1
+                    for ip in range(p_n):
+                        p_y = low - ip * (p_gap + p_size)
+                        circle(draw, (x_offset, p_y), line_thick_bold, color)
 
             elif self.style == 13:  # Classic Square Dot: Center
                 mid_y = self.mdpy * ratio
@@ -372,13 +377,14 @@ class AudioVisualizer:
                 x_offset = gap * i + self.mdpx * ratio - self.rad_max * ratio
                 p_gap = line_thick_bold * 2
                 p_size = line_thick_bold
-                p_n = int((low - mid_y + p_gap) / (p_gap + p_size))
-                if p_n < 1:
-                    p_n = 1
-                for ip in range(p_n):
-                    d_y = ip * (p_gap + p_size)
-                    rectangle(draw, (x_offset, mid_y + d_y), line_thick_bold, color)
-                    rectangle(draw, (x_offset, mid_y - d_y), line_thick_bold, color)
+                if p_gap + p_size > 0:
+                    p_n = int((low - mid_y + p_gap) / (p_gap + p_size))
+                    if p_n < 1:
+                        p_n = 1
+                    for ip in range(p_n):
+                        d_y = ip * (p_gap + p_size)
+                        rectangle(draw, (x_offset, mid_y + d_y), line_thick_bold, color)
+                        rectangle(draw, (x_offset, mid_y - d_y), line_thick_bold, color)
 
             elif self.style == 14:  # Classic Square Dot: Bottom
                 mid_y = self.mdpy * ratio
@@ -389,12 +395,13 @@ class AudioVisualizer:
                 x_offset = gap * i + self.mdpx * ratio - self.rad_max * ratio
                 p_gap = line_thick_bold * 2
                 p_size = line_thick_bold
-                p_n = int((low - up + p_gap) / (p_gap + p_size))
-                if p_n < 1:
-                    p_n = 1
-                for ip in range(p_n):
-                    p_y = low - ip * (p_gap + p_size)
-                    rectangle(draw, (x_offset, p_y), line_thick_bold, color)
+                if p_gap + p_size > 0:
+                    p_n = int((low - up + p_gap) / (p_gap + p_size))
+                    if p_n < 1:
+                        p_n = 1
+                    for ip in range(p_n):
+                        p_y = low - ip * (p_gap + p_size)
+                        rectangle(draw, (x_offset, p_y), line_thick_bold, color)
 
             elif self.style == 15:  # Classic Rectangle: Center
                 mid_y = self.mdpy * ratio
@@ -519,16 +526,16 @@ def linearRange(startx, endx, starty, endy, x):
     return (endy - starty) / (endx - startx) * (x - startx) + starty
 
 
-psy_dic = [[10, 200, 2.0, 1.0],
-           [200, 600, 1.0, 1.2],
-           [600, 2000, 1.2, 1.3],
-           [2000, 6000, 1.3, 1.5],
-           [6000, 15000, 1.5, 1.5],
-           [15000, 21000, 1.5, 0]]
+psy_map = [[10, 32, 3.0, 0.8],
+           [32, 64, 0.8, 1.0],
+           [64, 150, 1.0, 1.3],
+           [150, 2000, 1.3, 1.0],
+           [2000, 8000, 1.0, 1.2],
+           [8000, 24000, 1.2, 4.0]]
 
 
-def psyMode(freq):
-    for item in psy_dic:
+def psyModel(freq):  # Get psychoacoustical model
+    for item in psy_map:
         if item[0] <= freq < item[1]:
             return linearRange(item[0], item[1], item[2], item[3], freq)
     return 0

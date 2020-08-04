@@ -125,6 +125,8 @@ class MainMenu(QtWidgets.QWidget):
             if os.path.isfile(self.parent.vdic["sound_path"]):
                 self.parent.blendWindow.show()
                 return
+        else:
+            showInfo(self, self.lang["Cannot Render"], self.lang["Please select the correct audio file!"])
 
     def btn_about_release(self):
         self.parent.aboutWindow.show()
@@ -151,16 +153,16 @@ class AudioSettingWindow(QtWidgets.QWidget):
 
         items_prea = {
             self.lang["-Please Select-"]: -1,
-            self.lang["Pop Music"]: [48, 4000, False],
-            self.lang["Classical Music"]: [40, 6000, False],
+            self.lang["Pop Music"]: [32, 12000, False],
+            self.lang["Classical Music"]: [40, 7200, False],
             self.lang["Calm Music"]: [56, 2400, False],
-            self.lang["Orchestral Music"]: [56, 5400, False],
-            self.lang["Piano: Narrow Band"]: [56, 2000, False],
-            self.lang["Piano: Wide Band"]: [42, 3600, False],
+            self.lang["Orchestral Music"]: [42, 12000, False],
+            self.lang["Piano: Narrow Band"]: [55, 2100, False],
+            self.lang["Piano: Wide Band"]: [42, 4400, False],
             self.lang["Violin"]: [150, 4000, False],
-            self.lang["Guitar"]: [80, 1800, False],
-            self.lang["Natural Sound"]: [26, 8000, False],
-            self.lang["Voice"]: [100, 2000, True],
+            self.lang["Guitar"]: [80, 2200, False],
+            self.lang["Natural Sound"]: [32, 15000, False],
+            self.lang["Voice"]: [100, 2200, True],
         }
         self.combo_prea = ComboBox(self, items_prea, self.combo_prea_select, self.lang["Frequency Analyzer Preset"])
         VBlayout.addWidget(self.combo_prea)
@@ -478,7 +480,7 @@ class ImageSettingWindow(QtWidgets.QWidget):
             self.lang["Blurred BG Only"] + " (MP4, H264)": [True, 2],
             self.lang["Normal BG Only"] + " (MP4, H264)": [False, 2],
             self.lang["Transparent"] + " (MOV, PNG)": [False, -1],
-            self.lang["Spectrum Only"] + " (MOG, PNG)": [False, -2],
+            self.lang["Spectrum Only"] + " (MOV, PNG)": [False, -2],
         }
 
         self.combo_bg_mode = ComboBox(self, self.items_bg_mode, self.combo_bg_mode_select, self.lang["Background Mode"])

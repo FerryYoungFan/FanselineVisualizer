@@ -8,7 +8,7 @@ By Twitter @FanKetchup
 https://github.com/FerryYoungFan/FanselineVisualizer
 """
 
-__version__ = "1.1.2"  # Work with PYQT5
+__version__ = "1.1.3"  # Work with PYQT5
 
 from FanWheels_PIL import *
 from FanWheels_ffmpeg import *
@@ -511,9 +511,9 @@ class FanBlender:
         thread_num = 4
         cpu_count = os.cpu_count()
         if cpu_count is not None:
-            thread_num = cpu_count - 3
-        if thread_num < 4:
-            thread_num = 4
+            thread_num = cpu_count // 2
+        if thread_num < 2:
+            thread_num = 2
 
         print("CPU Thread for Rendering: " + str(thread_num))
 

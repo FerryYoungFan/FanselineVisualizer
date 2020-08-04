@@ -27,8 +27,6 @@ class InfoBridge:
             self.parent.setWindowTitle(self.parent.windowName + " " + self.parent.lang["(Running...)"])
             self.parent.blendWindow.freezeWindow(True)
         else:
-            self.parent.setWindowTitle(self.parent.windowName)
-            self.parent.blendWindow.freezeWindow(False)
             self.parent.isRunning = False
 
     def realTime(self, img):
@@ -360,6 +358,8 @@ class MainWindow(QtWidgets.QWidget):
             self.blendWindow.textview.moveCursor(QtGui.QTextCursor.End)
             self.timer.stop()
             self.timer.disconnect()
+            self.setWindowTitle(self.windowName)
+            self.blendWindow.freezeWindow(False)
 
     def closeEvent(self, event):
         global close_app
@@ -408,8 +408,8 @@ vdic_pre = {
     "text_color": (255, 255, 255, 255),
     "text_glow": True,
     "bins": 48,
-    "lower": 48,
-    "upper": 4000,
+    "lower": 32,
+    "upper": 12000,
     "color": "color4x",
     "bright": 0.6,
     "saturation": 0.5,
