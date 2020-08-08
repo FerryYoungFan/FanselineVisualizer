@@ -7,10 +7,19 @@ from pydub import AudioSegment
 
 
 class AudioAnalyzer:
-    def __init__(self, file_path, ffmpeg_path, fps=30):
+    def __init__(self, file_path, ffmpeg_path, fps=30, fq_low=20, fq_up=6000, bins=80, smooth=0, beat_detect=60,
+                 low_range=10):
         AudioSegment.ffmpeg = ffmpeg_path
         sound = AudioSegment.from_file(file_path)
         self.samples = np.asarray(sound.get_array_of_samples(), dtype=np.float)
+        self.fq_low = fq_low
+        self.fq_up = fq_up
+        self.bins = bins
+        self.low_range = np.clip(low_range / 100, 0.0, 1.0)
+        if not smooth:
+            self.smooth = smooth
+        else:
+            self.smooth = 0
         if np.max(self.samples) != 0:
             self.samples = self.samples / np.max(self.samples)
         self.sample_rate = sound.frame_rate
@@ -19,6 +28,11 @@ class AudioAnalyzer:
         self.fps = fps
         self.totalFrames = self.getTotalFrames()
         self.hist_stack = [None] * self.totalFrames
+
+        self.beat_stack = np.ones(self.totalFrames)
+        self.beat_calc_stack = [None] * self.totalFrames
+        self.beat_detect = beat_detect
+        self.beat_thres = (100 - beat_detect) / 100
 
     def fftAnalyzer(self, start_p, stop_p, fq_low=20, fq_up=6000, bins=80):
         freq_array = np.zeros(bins)
@@ -59,14 +73,11 @@ class AudioAnalyzer:
     def getTotalFrames(self):
         return int(self.fps * self.getLength() / self.getSampleRate()) + 1
 
-    def getHistAtFrame(self, index, fq_low=20, fq_up=6000, bins=80, smooth=0):
-        if smooth is None:
-            smooth = 0
-
-        smooth = int(round(smooth * self.fps / 30))
+    def getHistAtFrame(self, index):
+        smooth = int(round(self.smooth * self.fps / 30))
         if smooth >= 1 + 4:
             fcount = 0
-            freq_acc = np.zeros(bins)
+            freq_acc = np.zeros(self.bins)
             for i in range(smooth - 4 + 1):
                 fcount = fcount + 2
                 if index - i < 0:
@@ -74,20 +85,47 @@ class AudioAnalyzer:
                 else:
                     if self.hist_stack[index - i] is None:
                         left, right = self.getRange(index - i, smooth)
-                        self.hist_stack[index - i] = self.fftAnalyzer(left, right, fq_low, fq_up, bins)
+                        self.hist_stack[index - i] = self.fftAnalyzer(left, right, self.fq_low, self.fq_up, self.bins)
                     freq_acc += self.hist_stack[index - i]
                 if index + i > len(self.hist_stack) - 1:
                     pass
                 else:
                     if self.hist_stack[index + i] is None:
                         left, right = self.getRange(index + i, smooth)
-                        self.hist_stack[index + i] = self.fftAnalyzer(left, right, fq_low, fq_up, bins)
+                        self.hist_stack[index + i] = self.fftAnalyzer(left, right, self.fq_low, self.fq_up, self.bins)
                     freq_acc += self.hist_stack[index + i]
             return freq_acc / fcount
 
         else:
-            left, right = self.getRange(index, smooth)
-            return self.fftAnalyzer(left, right, fq_low, fq_up, bins)
+            if self.hist_stack[index] is None:
+                left, right = self.getRange(index, smooth)
+                self.hist_stack[index] = self.fftAnalyzer(left, right, self.fq_low, self.fq_up, self.bins)
+            return self.hist_stack[index]
+
+    def getBeatAtFrame(self, index):
+        if self.beat_detect > 0:
+            index = self.clipRange(index)
+            left = self.clipRange(index - self.fps / 6)
+            right = self.clipRange(index + self.fps / 6)
+            for i in range(left, right + 1):
+                if self.hist_stack[i] is None:
+                    self.getHistAtFrame(i)
+                if self.beat_calc_stack[i] is None:
+                    calc_nums = self.bins * self.low_range
+                    maxv = np.max(self.hist_stack[i][0:int(np.ceil(calc_nums))]) ** 2
+                    avgv = np.sum(self.hist_stack[i][0:int(np.ceil(calc_nums))])
+                    self.beat_calc_stack[i] = np.sqrt(max(maxv, avgv))
+            if self.beat_calc_stack[index] > self.beat_thres and self.beat_calc_stack[index] == np.max(
+                    self.beat_calc_stack[left:right + 1]):
+                self.beat_stack[index:right + 1] = list(1 + 0.05 * (np.linspace(1, 0, right + 1 - index) ** 2))
+        return self.beat_stack[index]
+
+    def clipRange(self, index):
+        if index >= self.totalFrames:
+            return self.totalFrames - 1
+        if index < 0:
+            return 0
+        return int(round(index))
 
     def getRange(self, idx, smooth=0):  # Get FFT range
         if idx < 0:
@@ -209,7 +247,7 @@ class AudioVisualizer:
         self.style = style
 
     def getFrame(self, hist, amplify=5, color_mode="color4x", bright=1.0, saturation=1.0, use_glow=True, rotate=0.0,
-                 fps=30.0, frame_pt=0, bg_mode=0, fg_img=None):
+                 fps=30.0, frame_pt=0, bg_mode=0, fg_img=None, fg_resize=1.0):
         bins = hist.shape[0]
         ratio = 2  # Antialiasing ratio
         line_thick = int(round(self.line_thick * ratio))
@@ -496,14 +534,21 @@ class AudioVisualizer:
 
         output = self.background.copy()
         output.paste(canvas, (0, 0), canvas)
-        if rotate != 0 and fg_img is not None and bg_mode > -2 and (not bg_mode == 2):
-            angle = -(rotate * frame_pt / fps / 60) * 360
-            rotate_img = fg_img.rotate(angle, resample=Image.BICUBIC)
-            output = pasteMiddle(rotate_img, output, glow=False, blur=0, bright=1)
 
-        if rotate == 0 and fg_img is not None and bg_mode > -2 and (not bg_mode == 2):
-            if self.style in [9, 10, 11, 12, 13, 14, 15, 16, 17]:
-                output = pasteMiddle(fg_img, output, glow=False, blur=0, bright=1)
+        if fg_img is not None and bg_mode > -2 and (not bg_mode == 2):
+            if rotate != 0:
+                angle = -(rotate * frame_pt / fps / 60) * 360
+                rotate_img = fg_img.rotate(angle, resample=Image.BICUBIC)
+                if fg_resize != 1.0:
+                    rotate_img = resizeRatio(rotate_img, fg_resize)
+                output = pasteMiddle(rotate_img, output, glow=False, blur=0, bright=1)
+
+            if rotate == 0:
+                if self.style in [9, 10, 11, 12, 13, 14, 15, 16, 17] or fg_resize != 0:
+                    if fg_resize != 1.0:
+                        output = pasteMiddle(resizeRatio(fg_img, fg_resize), output, glow=False, blur=0, bright=1)
+                    else:
+                        output = pasteMiddle(fg_img, output, glow=False, blur=0, bright=1)
 
         return output
 

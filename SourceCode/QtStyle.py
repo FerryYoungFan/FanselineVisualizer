@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+# font-family: "Microsoft Yahei",Helvetica,Arial,"Hiragino Sans GB","Heiti SC","WenQuanYi Micro Hei",sans-serif;
+
 stylepack = """
     QWidget {
         background-color: #202020;
-        font-family: "Microsoft Yahei",Helvetica,Arial,"Hiragino Sans GB","Heiti SC","WenQuanYi Micro Hei",sans-serif;
+        font-family: "Arial"
     }
 
     QToolTip { 
@@ -23,7 +25,7 @@ stylepack = """
     QLabel[fontset="2"]{
         font-size:15px;
         color:#4A88C7;
-        font-weight: 500;
+        font-weight: 600;
         margin:10px 5px 0px;
     }
     QLabel[fontset="3"]{
@@ -33,15 +35,15 @@ stylepack = """
     QLabel[fontset="4"]{
         font-size:15px;
         color:#999999;
-        font-weight: 500;
+        font-weight: 600;
         margin:10px 5px 0px;
     }
     QComboBox {
         border: 1px solid gray;
         border-radius: 3px;
         padding: 5px;
-        font-size:16px;
-        font-weight:500;
+        font-size:15px;
+        font-weight:600;
         color:#222222;
         background:#898B8D;
         margin:3px 3px 3px;
@@ -63,14 +65,14 @@ stylepack = """
         border: 0px;
         margin: 0px;
         color:#222222;
-        font-weight:500;
+        font-weight:600;
         background:#898B8D;
         selection-background-color:#437BB5;
         outline: none;
     }
     QListView{
-        font-size:16px;
-        font-weight:500;
+        font-size:15px;
+        font-weight:600;
     }
     QListView::item {
         height: 40px;
@@ -282,7 +284,7 @@ pushButtonStyle1 = """
         margin:3px 3px 3px;
         border-radius: 3;
         font-size:15px;
-        font-weight: 500;
+        font-weight: 600;
         color:#222222;
     }
     QPushButton:hover {
@@ -304,7 +306,7 @@ pushButtonStyle2 = """
         margin:3px 3px 3px;
         border-radius: 3;
         font-size:15px;
-        font-weight: 500;
+        font-weight: 600;
         color:#CCCCCC;
     }
     QPushButton:hover {
@@ -327,7 +329,7 @@ pushButtonStyle3 = """
         margin:3px 3px 3px;
         border-radius: 3;
         font-size:15px;
-        font-weight: 500;
+        font-weight: 600;
         color:#CCCCCC;
     }
     QPushButton:hover {
@@ -350,7 +352,7 @@ pushButtonStyle4 = """
         margin:3px 3px 3px;
         border-radius: 3;
         font-size:15px;
-        font-weight: 500;
+        font-weight: 600;
         color:#CCCCCC;
     }
     QPushButton:hover {
@@ -373,7 +375,7 @@ pushButtonStyle5 = """
         margin:3px 3px 3px;
         border-radius: 3;
         font-size:15px;
-        font-weight: 500;
+        font-weight: 600;
         color:#2C2C2C;
     }
     QPushButton:hover {
@@ -395,7 +397,7 @@ pushButtonStyle6 = """
         margin:3px 3px 3px;
         border-radius: 3;
         font-size:15px;
-        font-weight: 500;
+        font-weight: 600;
         color:#B52222;
     }
     QPushButton:hover {
@@ -428,7 +430,7 @@ lineEditStyle = """
         margin:3px 3px 3px;
         border-radius: 3;
         font-size:15px;
-        font-weight: 500;
+        font-weight: 600;
         color:#222222;
     }
 """
@@ -556,7 +558,7 @@ menuStyle = """
         background: #898B8D;
         padding:8px 3px 5px;
         font-size:15px;
-        font-weight: 500;
+        font-weight: 600;
         color:#222222;
     }
     QMenu::item{
@@ -588,8 +590,7 @@ textBrowserStyle = """
     QTextBrowser{
         background: #202020;
         color: #898B8D;
-        font-family: "Microsoft Yahei",Helvetica,Arial,"Hiragino Sans GB","Heiti SC","WenQuanYi Micro Hei",sans-serif;
-        font-weight:400;
+        font-weight:600;
         font-size:20em;
     }
     

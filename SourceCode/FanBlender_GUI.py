@@ -24,7 +24,7 @@ class InfoBridge:
 
     def freeze(self, flag=True):
         if flag:
-            self.parent.setWindowTitle(self.parent.windowName + " " + self.parent.lang["(Running...)"])
+            self.parent.setWindowTitle(self.parent.windowName + " " + self.parent.lang["(Rendering...)"])
             self.parent.blendWindow.freezeWindow(True)
         else:
             self.parent.isRunning = False
@@ -109,6 +109,7 @@ class MainWindow(QtWidgets.QWidget):
         mainBox.addWidget(splitter)
 
         self.setStyleSheet(stylepack)
+
         self.setAcceptDrops(True)
         self.canDrop = True
 
@@ -183,11 +184,13 @@ class MainWindow(QtWidgets.QWidget):
         self.fb.setSpec(bins=self.vdic["bins"], lower=self.vdic["lower"], upper=self.vdic["upper"],
                         color=self.vdic["color"], bright=self.vdic["bright"], saturation=self.vdic["saturation"],
                         scalar=self.vdic["scalar"], smooth=self.vdic["smooth"],
-                        style=self.vdic["style"], linewidth=self.vdic["linewidth"])
+                        style=self.vdic["style"], linewidth=self.vdic["linewidth"],
+                        rotate=self.vdic["rotate"],
+                        beat_detect=self.vdic["beat_detect"], low_range=self.vdic["low_range"])
         self.fb.setVideoInfo(width=self.vdic["width"], height=self.vdic["height"],
                              fps=self.vdic["fps"], br_Mbps=self.vdic["br_Mbps"],
                              blur_bg=self.vdic["blur_bg"], use_glow=self.vdic["use_glow"],
-                             bg_mode=self.vdic["bg_mode"], rotate=self.vdic["rotate"])
+                             bg_mode=self.vdic["bg_mode"])
         self.fb.setAudioInfo(normal=self.vdic["normal"], br_kbps=self.vdic["br_kbps"])
 
     def refreshAll(self):
@@ -203,7 +206,9 @@ class MainWindow(QtWidgets.QWidget):
         self.fb.setSpec(bins=self.vdic["bins"], lower=self.vdic["lower"], upper=self.vdic["upper"],
                         color=self.vdic["color"], bright=self.vdic["bright"], saturation=self.vdic["saturation"],
                         scalar=self.vdic["scalar"], smooth=self.vdic["smooth"],
-                        style=self.vdic["style"], linewidth=self.vdic["linewidth"])
+                        style=self.vdic["style"], linewidth=self.vdic["linewidth"],
+                        rotate=self.vdic["rotate"],
+                        beat_detect=self.vdic["beat_detect"], low_range=self.vdic["low_range"])
         self.viewer.imshow(self.fb.previewBackground(localViewer=False))
         self.setBusy(False)
 
@@ -408,8 +413,8 @@ vdic_pre = {
     "text_color": (255, 255, 255, 255),
     "text_glow": True,
     "bins": 48,
-    "lower": 32,
-    "upper": 12000,
+    "lower": 55,
+    "upper": 3000,
     "color": "color4x",
     "bright": 0.6,
     "saturation": 0.5,
@@ -427,6 +432,8 @@ vdic_pre = {
     "rotate": 0,
     "normal": False,
     "br_kbps": 320,
+    "beat_detect": 0,
+    "low_range": 12,
 }
 vdic = vdic_pre
 close_app = False
@@ -482,13 +489,24 @@ def saveConfig():
 if __name__ == '__main__':
     appMainWindow = None
     app = QtWidgets.QApplication(sys.argv)
+    _font = None
+    font_sets = ["Source/font.otf", "Source/font.ttf"]
+    for font_path in font_sets:
+        if os.path.exists(getPath(font_path)):
+            try:
+                fontid = QtGui.QFontDatabase.addApplicationFont(font_path)
+                _fontstr = QtGui.QFontDatabase.applicationFontFamilies(fontid)[0]
+                stylepack = stylepack.replace("Arial", _fontstr)
+                break
+            except:
+                pass
 
 
     def startMain():
-        global appMainWindow, lang, vdic, first_run
+        global appMainWindow, lang, vdic, first_run, _font
         loadConfig()
         appMainWindow = MainWindow(lang, vdic, lang_code, first_run)
-        appMainWindow.resize(1024, 700)
+        appMainWindow.resize(1050, 700)
         appMainWindow.show()
         appMainWindow.refreshAll()
 

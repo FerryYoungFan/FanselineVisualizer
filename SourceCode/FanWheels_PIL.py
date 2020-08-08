@@ -159,7 +159,7 @@ def glowText(img, text=None, font_size=35, font_set=None, color=(255, 255, 255, 
         _font = ImageFont.truetype("arial.ttf", font_size)
     else:
         _font = "arial.ttf"
-        for font_i in [font_set, getPath("Source/font.otf"), getPath("Source/font.otf"), "arial.ttf"]:
+        for font_i in [font_set, getPath("Source/font.ttf"), getPath("Source/font.otf"), "arial.ttf"]:
             try:
                 _font = ImageFont.truetype(font_i, font_size)
                 break

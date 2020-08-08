@@ -55,4 +55,8 @@ else:
         output_list.append("--icon=%s" % icon_path)
     output_list.append(main_file)
 
+excludes = ['FixTk', 'tcl', 'tk', '_tkinter', 'tkinter', 'Tkinter']
+for ex in excludes:
+    output_list.append("--exclude-module=" + ex)
+
 PyInstaller.__main__.run(output_list)

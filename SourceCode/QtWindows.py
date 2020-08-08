@@ -151,6 +151,11 @@ class AudioSettingWindow(QtWidgets.QWidget):
         self.combo_bra = ComboBox(self, items_bra, self.combo_bra_select, self.lang["Audio Bit Rate"])
         VBlayout.addWidget(self.combo_bra)
 
+        VBlayout.addWidget(genLabel(self, self.lang["Volume Normalize"]))
+        self.ck_normal = QSwitch(self)
+        self.ck_normal.released.connect(self.ck_normal_release)
+        VBlayout.addWidget(self.ck_normal)
+
         items_prea = {
             self.lang["-Please Select-"]: -1,
             self.lang["Pop Music"]: [32, 12000, False],
@@ -180,11 +185,6 @@ class AudioSettingWindow(QtWidgets.QWidget):
         HBlayout.addWidget(self.le_upper)
 
         VBlayout.addLayout(HBlayout)
-
-        VBlayout.addWidget(genLabel(self, self.lang["Volume Normalize"]))
-        self.ck_normal = QSwitch(self)
-        self.ck_normal.released.connect(self.ck_normal_release)
-        VBlayout.addWidget(self.ck_normal)
 
         VBlayout.setAlignment(QtCore.Qt.AlignBottom)
         btn_back = genButton(self, self.lang["Back to Main Menu"], None, self.btn_back_release, "Escape")
@@ -274,7 +274,7 @@ class VideoSettingWindow(QtWidgets.QWidget):
         VBlayout.addLayout(HBlayout)
 
         VBlayout.addWidget(genLabel(self, self.lang["Frame Rate (FPS)"]))
-        self.le_fps = LineEdit(self, self.lang["<FPS>"], self.setFps, [0.1, 120], False, scroll=1)
+        self.le_fps = LineEdit(self, self.lang["<FPS>"], self.setFps, [1.0, 120], False, scroll=1)
         VBlayout.addWidget(self.le_fps)
 
         VBlayout.addWidget(genLabel(self, self.lang["Video Bit Rate (Mbps)"]))
@@ -496,8 +496,18 @@ class ImageSettingWindow(QtWidgets.QWidget):
         VBlayout.addWidget(self.combo_spin)
         VBlayout.addWidget(genLabel(self, self.lang["Spin Speed (rpm)"]))
 
-        self.le_speed = LineEdit(self, self.lang["<Spin Speed>"], self.combo_spin_select, [0, 200], False, 1.0)
+        self.le_speed = LineEdit(self, self.lang["<Spin Speed>"], self.combo_spin_select, [-200, 200], False, 1.0)
         VBlayout.addWidget(self.le_speed)
+
+        VBlayout.addWidget(genLabel(self, self.lang["Vibrate Foreground"]))
+
+        self.sl_beat_detect = FSlider(self, self.lang["Vibrate FG to Bass (%)"], 0, 100, 1, 1,
+                                      self.sl_beat_detect_release, None)
+        VBlayout.addWidget(self.sl_beat_detect)
+
+        self.sl_low_range = FSlider(self, self.lang["Bass Frequency Range (%)"], 0, 100, 1, 1,
+                                    self.sl_low_range_release, None)
+        VBlayout.addWidget(self.sl_low_range)
 
         btn_back = genButton(self, self.lang["Back to Main Menu"], None, self.btn_back_release, "Escape")
         VBlayout.addWidget(btn_back)
@@ -513,11 +523,24 @@ class ImageSettingWindow(QtWidgets.QWidget):
         if self.isVisible():
             direction = self.combo_spin.getValue()
             speed = self.le_speed.numCheck()
-            if speed > 0 and direction == 0:
-                self.combo_spin.setValue(1)
-                direction = 1
+            if speed < 0:
+                speed = speed * -1
+                self.le_speed.setText(str(speed))
+                self.combo_spin.setValue(-1)
+                direction = -1
             self.parent.vdic["rotate"] = direction * speed
-            self.parent.refreshAll()
+            self.parent.refreshLocal()
+
+    def sl_low_range_release(self):
+        self.parent.vdic["low_range"] = self.sl_low_range.getValue()
+
+    def sl_beat_detect_release(self):
+        self.parent.vdic["beat_detect"] = self.sl_beat_detect.getValue()
+        if self.sl_beat_detect.getValue() > 0:
+            self.sl_low_range.setStyle(0)
+        else:
+            self.sl_low_range.setStyle(1)
+        self.parent.refreshLocal()
 
     def show(self):
         self.parent.hideAllMenu()
@@ -531,6 +554,12 @@ class ImageSettingWindow(QtWidgets.QWidget):
             speed = abs(self.parent.vdic["rotate"])
         self.combo_spin.setValue(direction)
         self.le_speed.setText(str(speed))
+        self.sl_low_range.setValue(self.parent.vdic["low_range"])
+        self.sl_beat_detect.setValue(self.parent.vdic["beat_detect"])
+        if self.sl_beat_detect.getValue() > 0:
+            self.sl_low_range.setStyle(0)
+        else:
+            self.sl_low_range.setStyle(1)
         super().show()
 
     def btn_back_release(self):

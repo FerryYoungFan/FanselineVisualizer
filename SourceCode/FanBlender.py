@@ -8,7 +8,7 @@ By Twitter @FanKetchup
 https://github.com/FerryYoungFan/FanselineVisualizer
 """
 
-__version__ = "1.1.3"  # Work with PYQT5
+__version__ = "1.1.4"  # Work with PYQT5
 
 from FanWheels_PIL import *
 from FanWheels_ffmpeg import *
@@ -37,8 +37,7 @@ class blendingThread(threading.Thread):
         while self.frame_pt < self.parent.total_frames and self.parent.isRunning:
             self.parent.frame_lock[self.frame_pt] = self.thread_num + 1
             self.parent.frame_buffer[self.frame_pt] = self.parent.visualizer.getFrame(
-                hist=self.parent.analyzer.getHistAtFrame(self.frame_pt, self.parent.fq_low,
-                                                         self.parent.fq_up, self.parent.bins, self.parent.smooth),
+                hist=self.parent.analyzer.getHistAtFrame(self.frame_pt),
                 amplify=self.parent._amplify,
                 color_mode=self.parent.spectrum_color,
                 bright=self.parent._bright,
@@ -48,7 +47,8 @@ class blendingThread(threading.Thread):
                 fps=self.parent.fps,
                 frame_pt=self.frame_pt,
                 bg_mode=self.parent.bg_mode,
-                fg_img=self.parent.fg_img)
+                fg_img=self.parent.fg_img,
+                fg_resize=self.parent.analyzer.getBeatAtFrame(self.frame_pt))
             self.frame_pt = self.frame_pt + self.total_thread
         print("Thread {0} -end".format(self.thread_num))
 
@@ -164,6 +164,8 @@ class FanBlender:
         self.style = 0
         self.linewidth = 1.0
         self.rotate = 0
+        self.beat_detect = 0
+        self.low_range = 10
         self._line_thick = 0
 
         self._amplify = self.setAmplify()
@@ -304,7 +306,7 @@ class FanBlender:
         self.font = font
 
     def setSpec(self, bins=None, lower=None, upper=None, color=None, bright=None, saturation=None, scalar=None,
-                smooth=None, style=None, linewidth=None):
+                smooth=None, style=None, linewidth=None, rotate=None, beat_detect=None, low_range=None):
         if bins is not None:
             self.bins = int(clip(bins, 2, 250))
 
@@ -338,17 +340,25 @@ class FanBlender:
         if linewidth is not None:
             self.linewidth = clip(linewidth, 0.01, 50)
 
+        if rotate is not None:
+            self.rotate = float(rotate)
+
+        if beat_detect is not None:
+            self.beat_detect = clip(beat_detect, 0, 100)
+
+        if low_range is not None:
+            self.low_range = clip(low_range, 0, 100)
+
         self._amplify = self.setAmplify()
         self.visualizer = None
 
-    def setVideoInfo(self, width=None, height=None, fps=None, br_Mbps=None, blur_bg=None, use_glow=None, bg_mode=None,
-                     rotate=None):
+    def setVideoInfo(self, width=None, height=None, fps=None, br_Mbps=None, blur_bg=None, use_glow=None, bg_mode=None):
         if width is not None:
             self.frame_width = int(clip(width, 16, 4096))
         if height is not None:
             self.frame_height = int(clip(height, 16, 4096))
         if fps is not None:
-            self.fps = int(clip(fps, 1, 120))
+            self.fps = clip(fps, 1, 120)
         if br_Mbps is None:
             br_Mbps = 15 * (self.frame_width * self.frame_height * self.fps) / (1920 * 1080 * 30)
             self.bit_rate = br_Mbps
@@ -363,9 +373,6 @@ class FanBlender:
 
         if bg_mode is not None:
             self.bg_mode = bg_mode
-
-        if rotate is not None:
-            self.rotate = float(rotate)
 
         self.visualizer = None
         self.bg_blended = False
@@ -435,7 +442,8 @@ class FanBlender:
         ys = (0.5 + 0.5 * np.cos(xs)) * self.scalar
         frame_sample = self.visualizer.getFrame(hist=ys, amplify=1, color_mode=self.spectrum_color, bright=self._bright,
                                                 saturation=self._saturation, use_glow=self.use_glow, rotate=self.rotate,
-                                                fps=30, frame_pt=90, fg_img=self.fg_img, bg_mode=self.bg_mode)
+                                                fps=30, frame_pt=90, bg_mode=self.bg_mode, fg_img=self.fg_img,
+                                                fg_resize=(self.beat_detect / 100) * 0.05 + 1)
         if localViewer:
             frame_sample.show()
         return frame_sample
@@ -460,7 +468,15 @@ class FanBlender:
             self.analyzer = None
             return
         try:
-            self.analyzer = AudioAnalyzer(self._temp_audio_path, self._ffmpeg_path, self.fps)
+            self.analyzer = AudioAnalyzer(file_path=self._temp_audio_path,
+                                          ffmpeg_path=self._ffmpeg_path,
+                                          fps=self.fps,
+                                          fq_low=self.fq_low,
+                                          fq_up=self.fq_up,
+                                          bins=self.bins,
+                                          smooth=self.smooth,
+                                          beat_detect=self.beat_detect,
+                                          low_range=self.low_range)
         except:
             self.fileError(self._temp_audio_path)
             self.analyzer = None
@@ -612,12 +628,13 @@ if __name__ == '__main__':
     fb.setSpec(bins=60, lower=20, upper=1500,
                color=fb.color_dic["Gradient: Green - Blue"], bright=0.6, saturation=0.8,
                scalar=1.0, smooth=2,
-               style=1, linewidth=1.0)
+               style=1, linewidth=1.0,
+               rotate=1.5, beat_detect=50, low_range=10)
     """
     Set Spectrum:
     bins: Number of spectrums
-    lower: Lower Frequency
-    upper: Upper Frequency
+    lower: Lower Frequency (Analyzer's Frequency) (in Hz)
+    upper: Upper Frequency (Analyzer's Frequency) (in Hz)
     color: Color of Spectrum
     bright: Brightness of Spectrum
     saturation: Color Saturation of Spectrum
@@ -625,16 +642,18 @@ if __name__ == '__main__':
     smooth: Stabilize Spectrum (Range: 0 - 15)
     style: 0-22 for Different Spectrum Styles (-1 for None)
     linewidth: Relative Width of Spectrum Line (0.5-20)
+    rotate: Rotate Foreground (r/min, Positive for Clockwise)
+    beat_detect: Sensitivity of Beat Detector (in %)
+    low_range: Low Frequency Range for Beat Detector (relative analyzer's frequency range) (in %)
     """
     fb.setVideoInfo(width=480, height=480, fps=30.0, br_Mbps=1.0,
-                    blur_bg=True, use_glow=True, bg_mode=0, rotate=1.5)
+                    blur_bg=True, use_glow=True, bg_mode=0)
     """
     Video info
     br_Mbps: Bit Rate of Video (Mbps)
     blur_bg: Blur the background
     use_glow: Add Glow Effect to Spectrum and Text
     bg_mode: 0: Normal Background, 2: Background Only, -1: Transparent Background, -2: Spectrum Only
-    rotate: Rotate Foreground (r/min, Positive for Clockwise)
     """
     fb.setAudioInfo(normal=False, br_kbps=192)  # Audio info
 

@@ -4,7 +4,7 @@
 lang_cn_s = {
     "Fanseline Visualizer": "Fanseline Visualizer",
     "Stop Rendering": "取消渲染",
-    "(Running...)": "(渲染中……)",
+    "(Rendering...)": "(渲染中……)",
     "(Computing...)": "(计算中……)",
     "ON": "开",
     "OFF": "关",
@@ -256,6 +256,10 @@ lang_cn_s = {
     "Glow Spec. (SLOW)": "发光频谱【缓慢】",
     "Project Website: ": "项目网站：",
     "Spin FG(rpm):": "旋转主图(转/分)：",
+    "Vibrate Foreground": "振动主图",
+    "Vibrate FG to Bass (%)": "随低音振动主图(%)",
+    "Bass Frequency Range (%)": "低音频率范围(%)",
+
     "Error! Cannot save config!": "错误！不能保存配置！",
     "FFMPEG not found, please install FFMPEG!": "FFMPEG未安装，请安装FFMPEG！",
 

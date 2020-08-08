@@ -36,12 +36,13 @@ if __name__ == '__main__':
     fb.setSpec(bins=60, lower=20, upper=1500,
                color=fb.color_dic["Gradient: Green - Blue"], bright=0.6, saturation=0.8,
                scalar=1.0, smooth=2,
-               style=1, linewidth=1.0)
+               style=1, linewidth=1.0,
+               rotate=1.5, beat_detect=50, low_range=10)
     """
     Set Spectrum:
     bins: Number of spectrums
-    lower: Lower Frequency
-    upper: Upper Frequency
+    lower: Lower Frequency (Analyzer's Frequency) (in Hz)
+    upper: Upper Frequency (Analyzer's Frequency) (in Hz)
     color: Color of Spectrum
     bright: Brightness of Spectrum
     saturation: Color Saturation of Spectrum
@@ -49,16 +50,18 @@ if __name__ == '__main__':
     smooth: Stabilize Spectrum (Range: 0 - 15)
     style: 0-22 for Different Spectrum Styles (-1 for None)
     linewidth: Relative Width of Spectrum Line (0.5-20)
+    rotate: Rotate Foreground (r/min, Positive for Clockwise)
+    beat_detect: Sensitivity of Beat Detector (in %)
+    low_range: Low Frequency Range for Beat Detector (relative analyzer's frequency range) (in %)
     """
     fb.setVideoInfo(width=480, height=480, fps=30.0, br_Mbps=1.0,
-                    blur_bg=True, use_glow=True, bg_mode=0, rotate=1.5)
+                    blur_bg=True, use_glow=True, bg_mode=0)
     """
     Video info
     br_Mbps: Bit Rate of Video (Mbps)
     blur_bg: Blur the background
     use_glow: Add Glow Effect to Spectrum and Text
     bg_mode: 0: Normal Background, 2: Background Only, -1: Transparent Background, -2: Spectrum Only
-    rotate: Rotate Foreground (r/min, Positive for Clockwise)
     """
     fb.setAudioInfo(normal=False, br_kbps=192)  # Audio info
 
