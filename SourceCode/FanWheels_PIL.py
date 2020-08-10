@@ -61,14 +61,14 @@ def cropToCenter(img):
     return im
 
 
-def cropCircle(img, size=None):
+def cropCircle(img, size=None, quality=3):
     img = cropToCenter(img)
-    pad_size = 2
     if size is not None:
         img = img.resize((size, size), Image.ANTIALIAS)
     # Antialiasing Drawing
     width, height = img.size
-    scale = 4
+    quality_list = [1, 1, 2, 4, 8, 8]
+    scale = quality_list[quality]
     size_anti = width * scale, height * scale
     mask = Image.new('L', size_anti, 0)
     draw = ImageDraw.Draw(mask)

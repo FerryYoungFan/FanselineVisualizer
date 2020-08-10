@@ -111,12 +111,17 @@ class AudioAnalyzer:
                 if self.hist_stack[i] is None:
                     self.getHistAtFrame(i)
                 if self.beat_calc_stack[i] is None:
-                    calc_nums = self.bins * self.low_range
+                    calc_nums = self.bins * self.low_range  # Frequency range for the bass
                     maxv = np.max(self.hist_stack[i][0:int(np.ceil(calc_nums))]) ** 2
-                    avgv = np.sum(self.hist_stack[i][0:int(np.ceil(calc_nums))])
+                    avgv = np.average(self.hist_stack[i][0:int(np.ceil(calc_nums))])
                     self.beat_calc_stack[i] = np.sqrt(max(maxv, avgv))
-            if self.beat_calc_stack[index] > self.beat_thres and self.beat_calc_stack[index] == np.max(
-                    self.beat_calc_stack[left:right + 1]):
+
+            slice_stack = self.beat_calc_stack[left:right + 1]
+            current_max = np.max(slice_stack)
+            index_max = np.where(slice_stack == current_max)[0][0]
+            standby = np.sum(self.beat_stack[index:right + 1] == 1.0) == len(self.beat_stack[index:right + 1])
+
+            if self.beat_calc_stack[index] >= self.beat_thres and index - left == index_max and standby:
                 self.beat_stack[index:right + 1] = list(1 + 0.05 * (np.linspace(1, 0, right + 1 - index) ** 2))
         return self.beat_stack[index]
 
@@ -247,9 +252,12 @@ class AudioVisualizer:
         self.style = style
 
     def getFrame(self, hist, amplify=5, color_mode="color4x", bright=1.0, saturation=1.0, use_glow=True, rotate=0.0,
-                 fps=30.0, frame_pt=0, bg_mode=0, fg_img=None, fg_resize=1.0):
+                 fps=30.0, frame_pt=0, bg_mode=0, fg_img=None, fg_resize=1.0, quality=3):
         bins = hist.shape[0]
-        ratio = 2  # Antialiasing ratio
+
+        quality_list = [1, 1, 2, 2, 4, 8]
+        ratio = quality_list[quality]  # Antialiasing ratio
+
         line_thick = int(round(self.line_thick * ratio))
         line_thick_bold = int(round(self.line_thick * ratio * 1.5))
         line_thick_slim = int(round(self.line_thick * ratio / 2))

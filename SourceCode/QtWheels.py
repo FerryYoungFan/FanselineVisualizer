@@ -129,6 +129,26 @@ def genLabel(window, content="No Content", fonttype=2):
     return label
 
 
+class HintLabel(QtWidgets.QWidget):
+    def __init__(self, parent, content="No Content", fonttype=2, pixmap=None, hint=None):
+        super(HintLabel, self).__init__(parent)
+        self.label = QtWidgets.QLabel(content, parent)
+        self.label.setProperty("fontset", fonttype)
+        self.layout = QtWidgets.QHBoxLayout(self)
+        self.layout.setAlignment(QtCore.Qt.AlignCenter | QtCore.Qt.AlignBottom)
+        if pixmap:
+            self.pixmap = QtWidgets.QLabel("", parent)
+            self.pixmap.setPixmap(pil2qt(pixmap))
+            self.pixmap.setAlignment(QtCore.Qt.AlignBottom | QtCore.Qt.AlignLeft)
+            self.label.setAlignment(QtCore.Qt.AlignVCenter | QtCore.Qt.AlignRight)
+            self.layout.addWidget(self.label)
+            self.layout.addWidget(self.pixmap)
+            if hint:
+                self.setToolTip(hint)
+        else:
+            self.layout.addWidget(self.label)
+
+
 def genButton(window, text="", press_event=None, release_event=None, shortcut=None, style=1, tooltip=None):
     btn = QtWidgets.QPushButton(window)
     btn.setText(text)

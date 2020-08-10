@@ -18,42 +18,52 @@ class MainMenu(QtWidgets.QWidget):
         VBlayout.addWidget(self.le_audio_path)
 
         self.btn_audio = genButton(self, self.lang["Select Audio"], None, self.btn_audio_release, style=2)
+        self.btn_audio.setIcon(pil2icon(img_pack["select_audio"]))
         VBlayout.addWidget(self.btn_audio)
 
         self.btn_audio_set = genButton(self, self.lang["Audio Settings"], None, self.btn_audio_set_release)
+        self.btn_audio_set.setIcon(pil2icon(img_pack["audio_settings"]))
         VBlayout.addWidget(self.btn_audio_set)
 
         VBlayout.addWidget(genLabel(self, self.lang["Video"]))
 
         self.btn_images = genButton(self, self.lang["Select Images"], None, self.btn_images_release, style=2)
+        self.btn_images.setIcon(pil2icon(img_pack["select_image"]))
         VBlayout.addWidget(self.btn_images)
 
         self.btn_image_set = genButton(self, self.lang["Image Settings"], None, self.btn_image_set_release)
+        self.btn_image_set.setIcon(pil2icon(img_pack["image_settings"]))
         VBlayout.addWidget(self.btn_image_set)
 
         self.btn_text_set = genButton(self, self.lang["Text Settings"], None, self.btn_text_set_release)
+        self.btn_text_set.setIcon(pil2icon(img_pack["text"]))
         VBlayout.addWidget(self.btn_text_set)
 
         self.btn_video_set = genButton(self, self.lang["Video Settings"], None, self.btn_video_set_release)
+        self.btn_video_set.setIcon(pil2icon(img_pack["video_settings"]))
         VBlayout.addWidget(self.btn_video_set)
 
         VBlayout.addWidget(genLabel(self, self.lang["Spectrum"]))
 
         self.btn_spec_style = genButton(self, self.lang["Spectrum Style"], None, self.btn_spec_style_release)
+        self.btn_spec_style.setIcon(pil2icon(img_pack["spectrum"]))
         VBlayout.addWidget(self.btn_spec_style)
 
         self.btn_spec_color = genButton(self, self.lang["Spectrum Color"], None, self.btn_spec_color_release)
+        self.btn_spec_color.setIcon(pil2icon(img_pack["color"]))
         VBlayout.addWidget(self.btn_spec_color)
 
         VBlayout.addWidget(genLabel(self, self.lang["Render"]))
 
         self.btn_blend = genButton(self, self.lang["Ready to Render"], None, self.btn_blend_release, "F5", style=4)
+        self.btn_blend.setIcon(pil2icon(img_pack["run"]))
         VBlayout.addWidget(self.btn_blend)
 
         self.btn_about = genButton(self, self.lang["About FVisualizer"], None, self.btn_about_release)
+        self.btn_about.setIcon(pil2icon(img_pack["info"]))
         VBlayout.addWidget(self.btn_about)
 
-        VBlayout.setSpacing(5)
+        VBlayout.setSpacing(4)
         VBlayout.setContentsMargins(0, 0, 0, 0)
 
         self.audio_formats = self.parent.audio_formats
@@ -102,6 +112,7 @@ class MainMenu(QtWidgets.QWidget):
             print("No File!")
         else:
             self.parent.vdic["sound_path"] = file_
+            self.parent.vdic["filename"] = getFileName(file_, False) + self.lang["_Visualize"] + ".mp4"
             self.showAudioFilePath()
 
     def btn_audio_set_release(self):
@@ -151,7 +162,9 @@ class AudioSettingWindow(QtWidgets.QWidget):
         self.combo_bra = ComboBox(self, items_bra, self.combo_bra_select, self.lang["Audio Bit Rate"])
         VBlayout.addWidget(self.combo_bra)
 
-        VBlayout.addWidget(genLabel(self, self.lang["Volume Normalize"]))
+        VBlayout.addWidget(HintLabel(self, self.lang["Volume Normalize"], 2, img_pack["what"],
+                                     self.lang["Adjust audio volume according to EBU R128 loudness standard."]))
+
         self.ck_normal = QSwitch(self)
         self.ck_normal.released.connect(self.ck_normal_release)
         VBlayout.addWidget(self.ck_normal)
@@ -172,7 +185,10 @@ class AudioSettingWindow(QtWidgets.QWidget):
         self.combo_prea = ComboBox(self, items_prea, self.combo_prea_select, self.lang["Frequency Analyzer Preset"])
         VBlayout.addWidget(self.combo_prea)
 
-        VBlayout.addWidget(genLabel(self, self.lang["Frequency Analyzer Range (Hz)"]))
+        VBlayout.addWidget(HintLabel(self, self.lang["Analyzer Frequency Range (Hz)"], 2, img_pack["what"],
+                                     self.lang[
+                                         "Visualized spectrum will be generated according to this frequency range."]))
+
         self.le_lower = LineEdit(self, self.lang["<FFT Lower>"], self.crossCheckLower, [16, 22050], True, scroll=50)
         self.le_upper = LineEdit(self, self.lang["<FFT Upper>"], self.crossCheckUpper, [16, 22050], True, scroll=50)
 
@@ -188,6 +204,7 @@ class AudioSettingWindow(QtWidgets.QWidget):
 
         VBlayout.setAlignment(QtCore.Qt.AlignBottom)
         btn_back = genButton(self, self.lang["Back to Main Menu"], None, self.btn_back_release, "Escape")
+        btn_back.setIcon(pil2icon(img_pack["back"]))
         VBlayout.addWidget(btn_back)
 
         VBlayout.setSpacing(15)
@@ -243,6 +260,7 @@ class VideoSettingWindow(QtWidgets.QWidget):
         self.lang = parent.lang
         VBlayout = QtWidgets.QVBoxLayout(self)
         VBlayout.setAlignment(QtCore.Qt.AlignTop)
+
         items_prev = {
             self.lang["-Please Select-"]: -1,
             self.lang["Square"] + " (1080x1080)": [1080, 1080, 30, self.getDefaultBR(1080, 1080, 30, 5)],
@@ -260,6 +278,16 @@ class VideoSettingWindow(QtWidgets.QWidget):
         }
         self.combo_prev = ComboBox(self, items_prev, self.combo_prev_select, self.lang["Video Preset"])
         VBlayout.addWidget(self.combo_prev)
+
+        self.items_quality = {
+            self.lang["Very Low"] + " (1x, 1x)": 1,
+            self.lang["Low"] + " (2x, 2x)": 2,
+            self.lang["Medium - Default"] + " (2x, 4x)": 3,
+            self.lang["High"] + " (4x, 8x)": 4,
+            self.lang["Very High"] + " (8x, 8x)": 5,
+        }
+        self.combo_quality = ComboBox(self, self.items_quality, self.combo_quality_select, self.lang["Render Quality"])
+        VBlayout.addWidget(self.combo_quality)
 
         VBlayout.addWidget(genLabel(self, self.lang["Frame Size"]))
         self.le_width = LineEdit(self, self.lang["<Width>"], self.setVideoSize, [16, 4096], True, scroll=100)
@@ -289,9 +317,16 @@ class VideoSettingWindow(QtWidgets.QWidget):
 
         VBlayout.setAlignment(QtCore.Qt.AlignBottom)
         btn_back = genButton(self, self.lang["Back to Main Menu"], None, self.btn_back_release, "Escape")
+        btn_back.setIcon(pil2icon(img_pack["back"]))
         VBlayout.addWidget(btn_back)
 
         VBlayout.setContentsMargins(0, 0, 0, 0)
+
+    def combo_quality_select(self):
+        quality = self.combo_quality.getValue()
+        self.parent.vdic["quality"] = quality
+        if self.isVisible():
+            self.parent.refreshAll()
 
     def combo_prev_select(self):
         presetv = self.combo_prev.getValue()
@@ -307,12 +342,14 @@ class VideoSettingWindow(QtWidgets.QWidget):
             self.parent.vdic["br_Mbps"] = self.le_brv.numCheck()
 
             self.le_brv.focusOutEvent()
-            self.parent.refreshAll()
+            if self.isVisible():
+                self.parent.refreshAll()
 
     def setVideoSize(self):
         self.parent.vdic["width"] = self.le_width.numCheck()
         self.parent.vdic["height"] = self.le_height.numCheck()
-        self.parent.refreshAll()
+        if self.isVisible():
+            self.parent.refreshAll()
         self.autoBitRate()
 
     def setFps(self):
@@ -348,6 +385,7 @@ class VideoSettingWindow(QtWidgets.QWidget):
     def show(self):
         self.parent.hideAllMenu()
         self.combo_prev.setValue(-1)
+        self.combo_quality.setValue(self.parent.vdic["quality"])
         self.le_width.setText(str(self.parent.vdic["width"]))
         self.le_height.setText(str(self.parent.vdic["height"]))
         self.le_brv.setText(str(self.parent.vdic["br_Mbps"]))
@@ -367,15 +405,17 @@ class TextWindow(QtWidgets.QWidget):
         VBlayout = QtWidgets.QVBoxLayout(self)
         VBlayout.setAlignment(QtCore.Qt.AlignTop)
 
-        VBlayout.addWidget(genLabel(self, self.lang["Text Input"]))
+        VBlayout.addWidget(genLabel(self, self.lang["Edit Text"]))
 
         self.le_text = LineEdit(self, self.lang["<Your text here>"], self.setMainText)
         VBlayout.addWidget(self.le_text)
 
         self.btn_filename = genButton(self, self.lang["Use File Name"], None, self.btn_filename_release)
+        self.btn_filename.setIcon(pil2icon(img_pack["file"]))
         VBlayout.addWidget(self.btn_filename)
 
         self.btn_clear = genButton(self, self.lang["Clear Text"], None, self.btn_clear_release, style=5)
+        self.btn_clear.setIcon(pil2icon(img_pack["delete"]))
         VBlayout.addWidget(self.btn_clear)
 
         VBlayout.addWidget(genLabel(self, self.lang["Text Settings"]))
@@ -384,12 +424,14 @@ class TextWindow(QtWidgets.QWidget):
         VBlayout.addWidget(self.sl_font)
 
         self.btn_color = genButton(self, self.lang["Select Color"], None, self.btn_color_release)
+        self.btn_color.setIcon(pil2icon(img_pack["color"]))
         VBlayout.addWidget(self.btn_color)
 
         self.le_font_path = LineEdit(self, self.lang["<Please open a font file>"], self.checkFont)
         VBlayout.addWidget(self.le_font_path)
 
         self.btn_font = genButton(self, self.lang["Select Font"], None, self.btn_font_release, style=2)
+        self.btn_font.setIcon(pil2icon(img_pack["font"]))
         VBlayout.addWidget(self.btn_font)
 
         VBlayout.addWidget(genLabel(self, self.lang["Glow Text"]))
@@ -398,6 +440,7 @@ class TextWindow(QtWidgets.QWidget):
         VBlayout.addWidget(self.ck_glow_text)
 
         btn_back = genButton(self, self.lang["Back to Main Menu"], None, self.btn_back_release, "Escape")
+        btn_back.setIcon(pil2icon(img_pack["back"]))
         VBlayout.addWidget(btn_back)
 
         VBlayout.setContentsMargins(0, 0, 0, 0)
@@ -499,9 +542,15 @@ class ImageSettingWindow(QtWidgets.QWidget):
         self.le_speed = LineEdit(self, self.lang["<Spin Speed>"], self.combo_spin_select, [-200, 200], False, 1.0)
         VBlayout.addWidget(self.le_speed)
 
-        VBlayout.addWidget(genLabel(self, self.lang["Vibrate Foreground"]))
+        VBlayout.addWidget(HintLabel(self, self.lang["Oscillate Foreground"], 2, img_pack["what"],
+                                     self.lang["Oscillate FG image accroding to the bass."] + "\n\n" + \
+                                     self.lang["Oscillate FG to Bass (%)"] + ": " + \
+                                     self.lang["Sensitivity of the bass (beat) detector."] + "\n" + \
+                                     self.lang["Bass Frequency Range (%)"] + ": " + \
+                                     self.lang["Relative frequency of bass to analyzer frequency range."]
+                                     ))
 
-        self.sl_beat_detect = FSlider(self, self.lang["Vibrate FG to Bass (%)"], 0, 100, 1, 1,
+        self.sl_beat_detect = FSlider(self, self.lang["Oscillate FG to Bass (%)"], 0, 100, 1, 1,
                                       self.sl_beat_detect_release, None)
         VBlayout.addWidget(self.sl_beat_detect)
 
@@ -510,6 +559,7 @@ class ImageSettingWindow(QtWidgets.QWidget):
         VBlayout.addWidget(self.sl_low_range)
 
         btn_back = genButton(self, self.lang["Back to Main Menu"], None, self.btn_back_release, "Escape")
+        btn_back.setIcon(pil2icon(img_pack["back"]))
         VBlayout.addWidget(btn_back)
         VBlayout.setContentsMargins(0, 0, 0, 0)
 
@@ -577,12 +627,9 @@ class SpectrumColorWindow(QtWidgets.QWidget):
 
         color_dic = {
             self.lang["Customize"]: None,
-            self.lang["Rainbow 4x"]: "color4x",
-            self.lang["Rainbow 2x"]: "color2x",
-            self.lang["Rainbow 1x"]: "color1x",
+            self.lang["Gray"]: "gray",
             self.lang["White"]: "white",
             self.lang["Black"]: "black",
-            self.lang["Gray"]: "gray",
             self.lang["Red"]: "red",
             self.lang["Green"]: "green",
             self.lang["Blue"]: "blue",
@@ -596,11 +643,16 @@ class SpectrumColorWindow(QtWidgets.QWidget):
             self.lang["Red - Yellow"]: "red-yellow",
             self.lang["Yellow - Green"]: "yellow-green",
             self.lang["Blue - Purple"]: "blue-purple",
+            self.lang["Rainbow 1x"]: "color1x",
+            self.lang["Rainbow 2x"]: "color2x",
+            self.lang["Rainbow 4x"]: "color4x",
+
         }
         self.combo_color = ComboBox(self, color_dic, self.combo_color_select, self.lang["Spectrum Color"])
         VBlayout.addWidget(self.combo_color)
 
         self.btn_color = genButton(self, self.lang["Customize Color"], None, self.btn_color_release)
+        self.btn_color.setIcon(pil2icon(img_pack["color"]))
         VBlayout.addWidget(self.btn_color)
 
         self.sl_sat = FSlider(self, self.lang["Spectrum Saturation"], 0.0, 1.0, 0.01, 0.8, self.sl_sat_release, None)
@@ -615,9 +667,11 @@ class SpectrumColorWindow(QtWidgets.QWidget):
         VBlayout.addWidget(self.ck_glow)
 
         btn_goto = genButton(self, self.lang["Spectrum Style"], None, self.btn_goto_release)
+        btn_goto.setIcon(pil2icon(img_pack["spectrum"]))
         VBlayout.addWidget(btn_goto)
 
         btn_back = genButton(self, self.lang["Back to Main Menu"], None, self.btn_back_release, "Escape")
+        btn_back.setIcon(pil2icon(img_pack["back"]))
         VBlayout.addWidget(btn_back)
         VBlayout.setContentsMargins(0, 0, 0, 0)
 
@@ -625,7 +679,8 @@ class SpectrumColorWindow(QtWidgets.QWidget):
         vcolor = self.combo_color.getValue()
         if vcolor is not None:
             self.parent.vdic["color"] = vcolor
-            self.parent.refreshLocal()
+            if self.isVisible():
+                self.parent.refreshLocal()
             self.sl_sat.setStyle(0)
             self.sl_brt.setStyle(0)
             self.btn_color.hide()
@@ -645,7 +700,8 @@ class SpectrumColorWindow(QtWidgets.QWidget):
                 color_hsv = rgb_to_hsv(*(self.parent.vdic["color"][:3]))
                 self.sl_sat.setValue(color_hsv[1])
                 self.sl_brt.setValue(color_hsv[2])
-            self.parent.refreshLocal()
+            if self.isVisible():
+                self.parent.refreshLocal()
 
     def sl_sat_release(self):
         self.parent.vdic["saturation"] = self.sl_sat.getValue()
@@ -676,11 +732,13 @@ class SpectrumColorWindow(QtWidgets.QWidget):
             self.sl_brt.setValue(color_hsv[2])
             self.sl_sat.setStyle(1)
             self.sl_brt.setStyle(1)
-            self.parent.refreshLocal()
+            if self.isVisible():
+                self.parent.refreshLocal()
 
     def ck_glow_release(self):
         self.parent.vdic["use_glow"] = self.ck_glow.isChecked()
-        self.parent.refreshAll()
+        if self.isVisible():
+            self.parent.refreshAll()
 
     def show(self):
         self.parent.hideAllMenu()
@@ -761,9 +819,11 @@ class SpectrumStyleWindow(QtWidgets.QWidget):
         VBlayout.addWidget(self.sl_smooth)
 
         btn_goto = genButton(self, self.lang["Spectrum Color"], None, self.btn_goto_release)
+        btn_goto.setIcon(pil2icon(img_pack["color"]))
         VBlayout.addWidget(btn_goto)
 
         btn_back = genButton(self, self.lang["Back to Main Menu"], None, self.btn_back_release, "Escape")
+        btn_back.setIcon(pil2icon(img_pack["back"]))
         VBlayout.addWidget(btn_back)
         VBlayout.setContentsMargins(0, 0, 0, 0)
 
@@ -818,6 +878,7 @@ class BlendWindow(QtWidgets.QWidget):
         VBlayout.addWidget(self.le_path)
 
         self.btn_output_path = genButton(self, self.lang["Select Path"], None, self.btn_output_path_release, style=2)
+        self.btn_output_path.setIcon(pil2icon(img_pack["folder"]))
         VBlayout.addWidget(self.btn_output_path)
 
         VBlayout.addWidget(genLabel(self, self.lang["Output Config"]))
@@ -836,13 +897,17 @@ class BlendWindow(QtWidgets.QWidget):
         self.prgbar.hide()
 
         self.btn_stop = genButton(self, self.lang["Stop Rendering"], None, self.btn_stop_release, style=3)
+        self.btn_stop.setIcon(pil2icon(img_pack["stop"]))
         VBlayout.addWidget(self.btn_stop)
         self.btn_stop.hide()
 
         self.btn_blend = genButton(self, self.lang["Start Rendering"], None, self.btn_blend_release, "Ctrl+F5", style=4)
+        self.btn_blend.setIcon(pil2icon(img_pack["run"]))
         VBlayout.addWidget(self.btn_blend)
 
         self.btn_back = genButton(self, self.lang["Back to Main Menu"], None, self.btn_back_release, "Escape")
+        self.btn_back.setIcon(pil2icon(img_pack["back"]))
+
         VBlayout.addWidget(self.btn_back)
         VBlayout.setContentsMargins(0, 0, 0, 0)
 
@@ -926,6 +991,7 @@ class BlendWindow(QtWidgets.QWidget):
             self.btn_blend.hide()
             self.le_path.setEnabled(False)
             self.btn_output_path.setEnabled(False)
+            self.btn_output_path.setIcon(pil2icon(img_pack["folder_black"]))
             loop = QtCore.QEventLoop()
             QtCore.QTimer.singleShot(100, loop.quit)
             loop.exec_()
@@ -943,6 +1009,8 @@ class BlendWindow(QtWidgets.QWidget):
             self.btn_blend.show()
             self.le_path.setEnabled(True)
             self.btn_output_path.setEnabled(True)
+            self.btn_output_path.setIcon(pil2icon(img_pack["folder"]))
+            self.textview.moveCursor(QtGui.QTextCursor.End)
 
     def show(self):
         self.parent.hideAllMenu()
@@ -984,6 +1052,7 @@ class AboutWindow(QtWidgets.QWidget):
         self.textview.zoomIn(1)
 
         btn_back = genButton(self, self.lang["Back to Main Menu"], None, self.btn_back_release, "Escape")
+        btn_back.setIcon(pil2icon(img_pack["back"]))
         VBlayout.addWidget(btn_back)
 
         VBlayout.setSpacing(15)

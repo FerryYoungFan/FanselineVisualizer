@@ -13,6 +13,8 @@ class InfoBridge:
         self.parent = parent
         self.value = 0
         self.total = 100
+        self.prepare = 0  # Prepare for audio pre-process
+        self.combine = 0  # Final combination
         self.img_cache = None
 
     def log(self, content=""):
@@ -190,7 +192,7 @@ class MainWindow(QtWidgets.QWidget):
         self.fb.setVideoInfo(width=self.vdic["width"], height=self.vdic["height"],
                              fps=self.vdic["fps"], br_Mbps=self.vdic["br_Mbps"],
                              blur_bg=self.vdic["blur_bg"], use_glow=self.vdic["use_glow"],
-                             bg_mode=self.vdic["bg_mode"])
+                             bg_mode=self.vdic["bg_mode"], quality=self.vdic["quality"])
         self.fb.setAudioInfo(normal=self.vdic["normal"], br_kbps=self.vdic["br_kbps"])
 
     def refreshAll(self):
@@ -238,6 +240,10 @@ class MainWindow(QtWidgets.QWidget):
         brief += self.lang["Video Size:"] + " " + str(self.vdic["width"]) + "x" + str(self.vdic["height"]) + "<br/>"
         brief += self.lang["FPS:"] + " " + str(self.vdic["fps"]) + "<br/>"
         brief += self.lang["Video BR:"] + " " + str(self.vdic["br_Mbps"]) + " (Mbps)<br/>"
+        for key, item in self.videoSetting.items_quality.items():
+            if self.vdic["quality"] == item:
+                brief += self.lang["Render Quality:"] + " " + str(key) + "<br/>"
+                break
         brief += self.lang["Audio BR:"] + " " + str(self.vdic["br_kbps"]) + " (kbps)<br/>"
         brief += self.lang["Volume Normalize:"] + " "
         if self.vdic["normal"]:
@@ -288,6 +294,8 @@ class MainWindow(QtWidgets.QWidget):
                 <font color=#437BB5><u>Dougie Doggies</u></font></a><br/>
                 <a href="https://twitter.com/kagurazakayashi">
                 <font color=#437BB5><u>神楽坂雅詩</u></font></a> &nbsp;&nbsp;&nbsp;&nbsp;
+                
+                L_liu &nbsp;&nbsp;&nbsp;&nbsp; Tony &nbsp;&nbsp;&nbsp;&nbsp;
                 <br/>
                 """
         intro += "{0}<br/>".format(self.lang["... and all people who support me!"])
@@ -315,8 +323,12 @@ class MainWindow(QtWidgets.QWidget):
 
     def realTimePreview(self):
         info = self.getBrief()
-        if self.infoBridge.total != 0:
+        if self.infoBridge.total != 0 and self.infoBridge.value == 0:
+            self.blendWindow.prgbar.setValue(int(self.infoBridge.prepare * 1000))
+        elif self.infoBridge.total != 0 and 0 < self.infoBridge.value < self.infoBridge.total:
             self.blendWindow.prgbar.setValue(int(self.infoBridge.value / self.infoBridge.total * 1000))
+        elif self.infoBridge.total != 0 and self.infoBridge.value >= self.infoBridge.total:
+            self.blendWindow.prgbar.setValue(int(self.infoBridge.combine * 1000))
         else:
             self.blendWindow.prgbar.setValue(0)
         if self.fb.isRunning or self.isRunning:
@@ -335,12 +347,14 @@ class MainWindow(QtWidgets.QWidget):
                     self.infoBridge.value) + " / " + str(self.infoBridge.total) + "</font><br/>"
                 info += self.time_cache
             else:
-                info += "<font color=#437BB5>" + self.lang["Analyzing Audio..."] + "</font><br/>"
+                info += "<font color=#437BB5>" + self.lang["Analyzing Audio..."] + "  " \
+                        + str(round(self.infoBridge.prepare * 100)) + "%</font><br/>"
 
             info += self.lang["Elapsed Time:"] + " " + secondToTime(time.time() - self.stopWatch) + "<br/>"
 
             if self.infoBridge.value >= self.infoBridge.total:
-                info += self.lang["Compositing Audio..."]
+                info += self.lang["Compositing Audio..."] + "  " \
+                        + str(round(self.infoBridge.combine * 100)) + "%"
 
             self.blendWindow.textview.setHtml(info)
             self.blendWindow.textview.moveCursor(QtGui.QTextCursor.End)
@@ -380,6 +394,7 @@ class MainWindow(QtWidgets.QWidget):
         else:
             saveConfig()
             close_app = True
+            self.fb.removeTemp()
             event.accept()
 
 
@@ -414,8 +429,8 @@ vdic_pre = {
     "text_glow": True,
     "bins": 48,
     "lower": 55,
-    "upper": 3000,
-    "color": "color4x",
+    "upper": 6000,
+    "color": "gray",
     "bright": 0.6,
     "saturation": 0.5,
     "scalar": 1.0,
@@ -434,6 +449,7 @@ vdic_pre = {
     "br_kbps": 320,
     "beat_detect": 0,
     "low_range": 12,
+    "quality": 3,
 }
 vdic = vdic_pre
 close_app = False

@@ -10,7 +10,7 @@ simply run:
 in terminal
 """
 
-import os
+import os, shutil
 
 try:
     from _CheckEnvironment import checkEnvironment
@@ -60,3 +60,14 @@ for ex in excludes:
     output_list.append("--exclude-module=" + ex)
 
 PyInstaller.__main__.run(output_list)
+
+print("Removing Unused files...")
+
+if platform == "darwin":
+    shutil.rmtree("./dist/"+app_name+".app/Contents/Resources/imageio",True)
+else:
+    shutil.rmtree("./dist/" + app_name + "/imageio", True)
+    if os.name == "nt":
+        os.remove("./dist/" + app_name + "/opengl32sw.dll")
+        os.remove("./dist/" + app_name + "/d3dcompiler_47.dll")
+

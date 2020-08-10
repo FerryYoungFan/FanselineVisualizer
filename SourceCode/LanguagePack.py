@@ -19,7 +19,7 @@ lang_cn_s = {
     "Render": "渲染",
     "<FFT Lower>": "FFT低频",
     "<FFT Upper>": "FFT高频",
-    "Frequency Analyzer Range (Hz)": "频率分析器范围(赫兹)",
+    "Analyzer Frequency Range (Hz)": "频率分析器范围(赫兹)",
     "Analyzer Range:": "分析器范围：",
 
     "<Please open an audio file>": "<请打开一个音频文件>",
@@ -62,7 +62,7 @@ lang_cn_s = {
     "Font Files": "字体文件",
     "Font Size": "文字大小",
     "Text Settings": "文字设置",
-    "Text Input": "文字输入",
+    "Edit Text": "编辑文字",
     "Clear Text": "清空文本",
     "Refresh Preview": "刷新预览",
     "<Your text here>": "<在此输入文字>",
@@ -159,6 +159,7 @@ lang_cn_s = {
     "Font File": "选择字体文件",
     "Video Size:": "视频尺寸：",
     "FPS:": "视频帧率：",
+    "Render Quality:": "渲染质量：",
     "Video BR:": "视频码率：",
     "Auto Bit Rate": "自动视频码率",
     "Analyze Freq:": "频率分析范围：",
@@ -209,6 +210,13 @@ lang_cn_s = {
     "Square": "正方形",
     "Landscape": "横屏",
     "Portrait": "竖屏",
+    "Very Low": "非常低",
+    "Low": "低",
+    "Medium - Default": "中等 - 默认",
+    "High": "高",
+    "Very High": "非常高",
+    "Render Quality": "渲染品质",
+
     "(Slow)": "(缓慢)",
     "Preview": "预览",
     "Welcome to use": "欢迎使用",
@@ -256,13 +264,18 @@ lang_cn_s = {
     "Glow Spec. (SLOW)": "发光频谱【缓慢】",
     "Project Website: ": "项目网站：",
     "Spin FG(rpm):": "旋转主图(转/分)：",
-    "Vibrate Foreground": "振动主图",
-    "Vibrate FG to Bass (%)": "随低音振动主图(%)",
+    "Oscillate Foreground": "振动主图",
+    "Oscillate FG to Bass (%)": "随低音振动主图(%)",
     "Bass Frequency Range (%)": "低音频率范围(%)",
 
     "Error! Cannot save config!": "错误！不能保存配置！",
     "FFMPEG not found, please install FFMPEG!": "FFMPEG未安装，请安装FFMPEG！",
 
+    "Adjust audio volume according to EBU R128 loudness standard.": "根据 EBU R128 标准调整音频的音量。",
+    "Visualized spectrum will be generated according to this frequency range.": "软件将根据此频率范围绘制可视化频谱。",
+    "Oscillate FG image accroding to the bass.": "根据低音振动主图",
+    "Sensitivity of the bass (beat) detector.": "重低音（节拍）检测器的敏感度。",
+    "Relative frequency of bass to analyzer frequency range.": "重低音频率占分析器总频率的相对比例。",
 }
 
 lang_keys = list(lang_cn_s.keys())

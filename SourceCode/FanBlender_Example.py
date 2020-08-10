@@ -55,13 +55,14 @@ if __name__ == '__main__':
     low_range: Low Frequency Range for Beat Detector (relative analyzer's frequency range) (in %)
     """
     fb.setVideoInfo(width=480, height=480, fps=30.0, br_Mbps=1.0,
-                    blur_bg=True, use_glow=True, bg_mode=0)
+                    blur_bg=True, use_glow=True, bg_mode=0, quality=3)
     """
     Video info
     br_Mbps: Bit Rate of Video (Mbps)
     blur_bg: Blur the background
     use_glow: Add Glow Effect to Spectrum and Text
     bg_mode: 0: Normal Background, 2: Background Only, -1: Transparent Background, -2: Spectrum Only
+    quality: Antialiasing Quality (1-5, default 3)
     """
     fb.setAudioInfo(normal=False, br_kbps=192)  # Audio info
 

@@ -1,0 +1,6 @@
+numpy==1.19.0
+Pillow==7.2.0
+imageio==2.9.0
+imageio-ffmpeg==0.4.2
+PyQt5==5.15.0
+pydub==0.24.1

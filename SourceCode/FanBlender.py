@@ -8,7 +8,7 @@ By Twitter @FanKetchup
 https://github.com/FerryYoungFan/FanselineVisualizer
 """
 
-__version__ = "1.1.4"  # Work with PYQT5
+__version__ = "1.1.5"  # Work with PYQT5
 
 from FanWheels_PIL import *
 from FanWheels_ffmpeg import *
@@ -48,7 +48,8 @@ class blendingThread(threading.Thread):
                 frame_pt=self.frame_pt,
                 bg_mode=self.parent.bg_mode,
                 fg_img=self.parent.fg_img,
-                fg_resize=self.parent.analyzer.getBeatAtFrame(self.frame_pt))
+                fg_resize=self.parent.analyzer.getBeatAtFrame(self.frame_pt),
+                quality=self.parent.quality)
             self.frame_pt = self.frame_pt + self.total_thread
         print("Thread {0} -end".format(self.thread_num))
 
@@ -142,7 +143,6 @@ class FanBlender:
         self._debug_bg = False
         self._temp_audio_path = getPath("Temp/temp.wav")
         self._temp_video_path = getPath("Temp/temp.mp4")
-        self.ensure_dir(self._temp_audio_path)
 
         try:
             self._ffmpeg_path = imageio_ffmpeg.get_ffmpeg_exe()
@@ -186,6 +186,7 @@ class FanBlender:
         self.frame_lock = None
 
         self.bg_mode = 0
+        self.quality = 3
         self.bg_blended = False
         self.ffmpegCheck()
 
@@ -352,7 +353,8 @@ class FanBlender:
         self._amplify = self.setAmplify()
         self.visualizer = None
 
-    def setVideoInfo(self, width=None, height=None, fps=None, br_Mbps=None, blur_bg=None, use_glow=None, bg_mode=None):
+    def setVideoInfo(self, width=None, height=None, fps=None, br_Mbps=None, blur_bg=None,
+                     use_glow=None, bg_mode=None, quality=None):
         if width is not None:
             self.frame_width = int(clip(width, 16, 4096))
         if height is not None:
@@ -373,6 +375,9 @@ class FanBlender:
 
         if bg_mode is not None:
             self.bg_mode = bg_mode
+
+        if quality is not None:
+            self.quality = int(clip(quality, 1, 5))
 
         self.visualizer = None
         self.bg_blended = False
@@ -400,7 +405,7 @@ class FanBlender:
             except:
                 pass
 
-            foreground = cropCircle(image, size=self._frame_size // 2)
+            foreground = cropCircle(image, size=self._frame_size // 2, quality=self.quality)
             self.fg_img = foreground
 
             if bg is None:
@@ -443,7 +448,7 @@ class FanBlender:
         frame_sample = self.visualizer.getFrame(hist=ys, amplify=1, color_mode=self.spectrum_color, bright=self._bright,
                                                 saturation=self._saturation, use_glow=self.use_glow, rotate=self.rotate,
                                                 fps=30, frame_pt=90, bg_mode=self.bg_mode, fg_img=self.fg_img,
-                                                fg_resize=(self.beat_detect / 100) * 0.05 + 1)
+                                                fg_resize=(self.beat_detect / 100) * 0.05 + 1, quality=self.quality)
         if localViewer:
             frame_sample.show()
         return frame_sample
@@ -462,7 +467,8 @@ class FanBlender:
             self.log("Error: Audio file not found!")
             return
         try:
-            toTempWaveFile(self.sound_path, self._temp_audio_path)
+            self.ensure_dir(self._temp_audio_path)
+            toTempWaveFile(self.sound_path, self._temp_audio_path, self._console)
         except:
             self.fileError(self.sound_path)
             self.analyzer = None
@@ -493,6 +499,13 @@ class FanBlender:
             return
         self.isRunning = True
         self.genAnalyzer()
+
+        if not self.isRunning:
+            self.removeTemp()
+            self.isRunning = False
+            self.freezeConsole(False)
+            return
+
         if self._temp_audio_path is None or not os.path.exists(str(self._temp_audio_path)):
             self.freezeConsole(False)
             self.audioError()
@@ -528,8 +541,8 @@ class FanBlender:
         cpu_count = os.cpu_count()
         if cpu_count is not None:
             thread_num = cpu_count // 2
-        if thread_num < 2:
-            thread_num = 2
+        if thread_num < 1:
+            thread_num = 1
 
         print("CPU Thread for Rendering: " + str(thread_num))
 
@@ -550,18 +563,19 @@ class FanBlender:
             self.log("Combining Videos...")
             audio_br = str(self.audio_bit_rate) + "k"
             if self.bg_mode < 0:
-                combineVideo(cvtFileName(self._temp_video_path, "mov"),
-                             self.sound_path,
-                             cvtFileName(self.output_path, "mov"), audio_br, self.audio_normal)
+                combineVideo(cvtFileName(self._temp_video_path, "mov"), self.sound_path,
+                             cvtFileName(self.output_path, "mov"), audio_br, self.audio_normal, console=self._console)
             else:
-                combineVideo(self._temp_video_path, self.sound_path, self.output_path, audio_br, self.audio_normal)
+                combineVideo(self._temp_video_path, self.sound_path, self.output_path, audio_br, self.audio_normal,
+                             console=self._console)
             self.log("Combining Videos... Done!")
         else:
             self.log("Rendering Aborted!")
 
+        self.analyzer = None
         self.removeTemp()
-        self.freezeConsole(False)
         self.isRunning = False
+        self.freezeConsole(False)
 
     def getOutputPath(self):
         if self.bg_mode < 0:
@@ -647,13 +661,14 @@ if __name__ == '__main__':
     low_range: Low Frequency Range for Beat Detector (relative analyzer's frequency range) (in %)
     """
     fb.setVideoInfo(width=480, height=480, fps=30.0, br_Mbps=1.0,
-                    blur_bg=True, use_glow=True, bg_mode=0)
+                    blur_bg=True, use_glow=True, bg_mode=0, quality=3)
     """
     Video info
     br_Mbps: Bit Rate of Video (Mbps)
     blur_bg: Blur the background
     use_glow: Add Glow Effect to Spectrum and Text
     bg_mode: 0: Normal Background, 2: Background Only, -1: Transparent Background, -2: Spectrum Only
+    quality: Antialiasing Quality (1-5, default 3)
     """
     fb.setAudioInfo(normal=False, br_kbps=192)  # Audio info
 
