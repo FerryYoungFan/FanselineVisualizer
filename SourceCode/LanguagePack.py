@@ -88,6 +88,14 @@ lang_cn_s = {
     "Spectrum Scalar": "频谱条灵敏倍率",
     "Spectrum Stabilize": "频谱防抖",
 
+    "Save Project": "保存项目",
+    "Load Project": "读取项目",
+    "Save Project as...": "项目保存为……",
+    "FV Project Files": "FV项目文件",
+    "Open Project File...": "打开项目文件……",
+    "File Error": "文件错误",
+    "Cannot Read this Project!": "无法读取该项目！",
+
     "Save as PNG": "保存为PNG",
     "Save as JPG": "保存为JPG",
     "Save as BMP": "保存为BMP",
@@ -145,7 +153,7 @@ lang_cn_s = {
     "Please select the correct audio file!": "请先正确选择音频文件！",
     "Please select the correct output path!": "请正确选择输出路径！",
     "Please input the corrent file name!": "请正确输入输出文件名！",
-    "Cannot open this image file!": "无法打开该图片",
+    "Cannot open this image file!": "无法打开该图片！",
     "Stop Rendering...": "正在取消渲染……",
 
     "Audio (REQUIRED)": "声音文件【必选】",
@@ -274,7 +282,7 @@ lang_cn_s = {
     "Adjust audio volume according to EBU R128 loudness standard.": "根据 EBU R128 标准调整音频的音量。",
     "Visualized spectrum will be generated according to this frequency range.": "软件将根据此频率范围绘制可视化频谱。",
     "Oscillate FG image accroding to the bass.": "根据低音振动主图",
-    "Sensitivity of the bass (beat) detector.": "重低音（节拍）检测器的敏感度。",
+    "Sensitivity of the bass (beat) detector.": "重低音（节拍）检测器的灵敏度。",
     "Relative frequency of bass to analyzer frequency range.": "重低音频率占分析器总频率的相对比例。",
 }
 

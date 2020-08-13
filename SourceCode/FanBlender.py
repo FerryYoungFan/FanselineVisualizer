@@ -2,13 +2,15 @@
 # -*- coding: utf-8 -*-
 
 """
-Fanseline Audio Visualizer
+Fanseline Visualizer
 帆室邻音频可视化视频制作工具
-By Twitter @FanKetchup
 https://github.com/FerryYoungFan/FanselineVisualizer
+
+By Twitter @FanKetchup
+https://twitter.com/FanKetchup
 """
 
-__version__ = "1.1.5"  # Work with PYQT5
+__version__ = "1.1.6"  # Work with PYQT5
 
 from FanWheels_PIL import *
 from FanWheels_ffmpeg import *
@@ -389,57 +391,51 @@ class FanBlender:
         if br_kbps is not None:
             self.audio_bit_rate = int(round(clip(br_kbps, 5, 10000)))
 
-    def genBackground(self, forceRefresh=False):
+    def genBackground(self, forceRefresh=False, preview=False):
         self.calcRel()
         if not self.bg_blended or forceRefresh:
             self.log("Rendering Background...")
 
-            image = openImage(self.image_path, "RGBA", ["Source/fallback.png", "Source/fallback.jpg", (127, 127, 127)])
+            image = openImage(self.image_path, "RGBA",
+                              ["Source/fallback.png", "Source/fallback.jpg", (127, 127, 127, 127)])
             bg = openImage(self.bg_path, "RGB", [None])
             self.logofile = openImage(self.logo_path, "RGBA", [None])
-            try:
-                fimage = Image.new('RGB', image.size, (65, 65, 65))
-                fimage.paste(image, (0, 0), image)
-                if fimage:
-                    image = fimage
-            except:
-                pass
-
-            foreground = cropCircle(image, size=self._frame_size // 2, quality=self.quality)
-            self.fg_img = foreground
 
             if bg is None:
                 bg = image.copy()
 
             if self.bg_mode < 0:
-                background = Image.new("RGBA", (self.frame_width, self.frame_height), (0, 0, 0, 0))
+                self.bg_img = Image.new("RGBA", (self.frame_width, self.frame_height), (0, 0, 0, 0))
             else:
                 if self.blur_bg:
-                    background = genBG(bg, size=(self.frame_width, self.frame_height), blur=self._blur_bg, bright=0.3)
+                    self.bg_img = genBG(bg, size=(self.frame_width, self.frame_height), blur=self._blur_bg, bright=0.3)
                 else:
-                    background = genBG(bg, size=(self.frame_width, self.frame_height), blur=0, bright=1.0)
-            self.bg_img = background
+                    self.bg_img = genBG(bg, size=(self.frame_width, self.frame_height), blur=0, bright=1.0)
             self.log("Rendering Background... Done!")
 
-        background = self.bg_img.copy()
-        if self.bg_mode >= -1 and not self.bg_mode == 2:
-            if self.rotate == 0:
-                background = pasteMiddle(self.fg_img, background, glow=self.use_glow, blur=self._blur * 2,
-                                         bright=self._bright)
+            if (self.bg_mode >= -1) and (not self.bg_mode == 2):
+                self.fg_img = cropCircle(image, size=self._frame_size // 2, quality=self.quality)
+                base_fg = self.fg_img.split()[-1]
+                base_w = base_fg.size[0] + int(round(self._blur * 4))
+                base_h = base_fg.size[1] + int(round(self._blur * 4))
+                base_fg = pasteMiddle(base_fg, Image.new("L", (base_w, base_h), 0))
+                base_fg = base_fg.filter(ImageFilter.GaussianBlur(radius=self._blur * 2))
+                white_fg = Image.new("L", (base_w, base_h), 0)
+                self.fg_img = pasteMiddle(self.fg_img, Image.merge('RGBA', (white_fg, white_fg, white_fg, base_fg)))
 
-        background = glowText(background, self.text_bottom, self._font_size, self.font, color=self._text_color,
-                              blur=self._blur, logo=self.logofile, use_glow=self._text_glow, yoffset=self._yoffset)
+            self.bg_img = glowText(self.bg_img, self.text_bottom, self._font_size, self.font, color=self._text_color,
+                                   blur=self._blur, logo=self.logofile, use_glow=self._text_glow, yoffset=self._yoffset)
+            self.bg_blended = True
 
         rad_max = (self._yoffset - self.frame_height / 2) * 0.97
         if self.text_bottom is None or self.text_bottom == "":
             if self.logo_path is None or not os.path.exists(self.logo_path):
                 rad_max = self.frame_height / 2
-        self.visualizer = AudioVisualizer(img=background,
+        self.visualizer = AudioVisualizer(img=self.bg_img,
                                           rad_min=self._frame_size / 4 * 1.1,
                                           rad_max=min(rad_max, self._frame_size / 2.1),
                                           line_thick=self._line_thick,
                                           blur=self._blur, style=self.style)
-        self.bg_blended = True
 
     def previewBackground(self, localViewer=False, forceRefresh=False):
         self.genBackground(forceRefresh)
@@ -543,11 +539,9 @@ class FanBlender:
             thread_num = cpu_count // 2
         if thread_num < 1:
             thread_num = 1
-
         print("CPU Thread for Rendering: " + str(thread_num))
 
         self.frame_lock = np.zeros(self.total_frames, dtype=np.uint8)
-
         for ith in range(thread_num):
             thread_stack.append(blendingThread(ith + 2, "Thread-" + str(ith + 2), ith + 2, self, thread_num, ith))
         thread_encode.start()

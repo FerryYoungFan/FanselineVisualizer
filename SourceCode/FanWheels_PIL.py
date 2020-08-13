@@ -46,7 +46,10 @@ def openImage(path, mode="RGBA", fallbacks=None):
                 return img
     else:
         return img
-    img = Image.new('RGB', (512, 512), (0, 0, 0))
+    if mode == "RGBA":
+        img = Image.new('RGB', (512, 512), (0, 0, 0))
+    else:
+        img = Image.new('RGBA', (512, 512), (0, 0, 0, 255))
     return img
 
 
@@ -67,13 +70,15 @@ def cropCircle(img, size=None, quality=3):
         img = img.resize((size, size), Image.ANTIALIAS)
     # Antialiasing Drawing
     width, height = img.size
+    old_mask = img.split()[-1]
     quality_list = [1, 1, 2, 4, 8, 8]
     scale = quality_list[quality]
     size_anti = width * scale, height * scale
-    mask = Image.new('L', size_anti, 0)
+    mask = Image.new('L', size_anti, 255)
     draw = ImageDraw.Draw(mask)
-    draw.ellipse((0, 0) + size_anti, fill=255)
+    draw.ellipse((0, 0) + size_anti, fill=0)
     mask = mask.resize((size, size), Image.ANTIALIAS)
+    mask = ImageChops.subtract(old_mask, mask)
     img.putalpha(mask)
     return img
 
@@ -104,6 +109,7 @@ def cropBG(img, size):
     top = (height - size[1]) / 2
     right = (width + size[0]) / 2
     bottom = (height + size[1]) / 2
+
     img = img.crop((left, top, right, bottom))
     return img
 
@@ -131,9 +137,7 @@ def pasteMiddle(fg, bg, glow=False, blur=2, bright=1):
         canvas.paste(fg, offset, fg)
         mask = canvas.split()[-1]
         mask = mask.point(lambda i: i * bright)
-        ratio = 2
-        mask = resizeRatio(mask, ratio)
-        mask = mask.filter(ImageFilter.GaussianBlur(radius=blur * ratio))
+        mask = mask.filter(ImageFilter.GaussianBlur(radius=blur))
         mask = mask.resize((bg_w, bg_h))
         if bg.mode == "L":
             canvas = mask
@@ -142,6 +146,7 @@ def pasteMiddle(fg, bg, glow=False, blur=2, bright=1):
         elif bg.mode == "RGBA":
             canvas = Image.merge('RGBA', (mask, mask, mask, mask))
         bg = ImageChops.add(bg, canvas)
+
     bg.paste(fg, offset, fg)
     return bg
 
@@ -149,11 +154,10 @@ def pasteMiddle(fg, bg, glow=False, blur=2, bright=1):
 def glowText(img, text=None, font_size=35, font_set=None, color=(255, 255, 255, 255), blur=2, logo=None, use_glow=True,
              yoffset=0):
     width, height = img.size
-    ratio = 2
-    width = width * ratio
-    height = height * ratio
-    font_size = font_size * ratio
-    blur = blur * ratio
+    width = width
+    height = height
+    font_size = font_size
+    blur = blur
 
     if font_set is None:
         _font = ImageFont.truetype("arial.ttf", font_size)
@@ -185,13 +189,13 @@ def glowText(img, text=None, font_size=35, font_set=None, color=(255, 255, 255, 
             xoffset = lg_nw
         w = w + xoffset
         _x_logo = int(round((width - w) / 2))
-        _y_logo = int(round(yoffset * ratio - font_size * (hoffset - 1) / 2))
+        _y_logo = int(round(yoffset - font_size * (hoffset - 1) / 2))
         try:
             canvas.paste(logo, (_x_logo, _y_logo), logo)
         except:
             canvas.paste(logo, (_x_logo, _y_logo))
     if text:
-        draw.text(((width - w) / 2 + xoffset, yoffset * ratio), text, fill=color, font=_font)
+        draw.text(((width - w) / 2 + xoffset, yoffset), text, fill=color, font=_font)
     if use_glow:
         mask_blur = canvas.split()[-1]
         mask_blur = mask_blur.filter(ImageFilter.GaussianBlur(radius=blur * 2))

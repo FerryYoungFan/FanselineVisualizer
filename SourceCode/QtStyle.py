@@ -86,7 +86,7 @@ stylepack = """
     """
 
 sliderStyleDefault = """
-        QSlider{
+    QSlider{
         margin: 0px 10px 10px;
     }
     QSlider::groove:horizontal {
@@ -121,7 +121,7 @@ sliderStyleDefault = """
 
 """
 sliderStyle1 = """
-        QSlider{
+    QSlider{
         margin: 0px 10px 10px;
     }
     QSlider::groove:horizontal {
@@ -133,7 +133,7 @@ sliderStyle1 = """
     QSlider::handle:horizontal {
         background: #898B8D;
         width: 30px;
-        height: 30px;
+        height: 20px;
         border-radius: 5;
     }
 
@@ -152,20 +152,20 @@ sliderStyle1 = """
         background: #405368;
     }
 """
-sliderStyle2 = """
+sliderStyle2 = """ 
         QSlider{
         margin: 0px 10px 10px;
     }
     QSlider::groove:horizontal {
         height: 20px;
         border-radius: 10px;
-        margin: -5px 0;
+        margin:-5px 0;
     }
 
     QSlider::handle:horizontal {
         background: #898B8D;
         width: 30px;
-        height: 30px;
+        height: 20px;
         border-radius: 5;
     }
 
@@ -197,7 +197,7 @@ sliderStyle3 = """
     QSlider::handle:horizontal {
         background: #898B8D;
         width: 30px;
-        height: 30px;
+        height: 20px;
         border-radius: 5;
     }
 
@@ -216,7 +216,7 @@ sliderStyle3 = """
     }
 """
 sliderStyle4 = """
-        QSlider{
+    QSlider{
         margin: 0px 10px 10px;
     }
     QSlider::groove:horizontal {
@@ -228,7 +228,7 @@ sliderStyle4 = """
     QSlider::handle:horizontal {
         background: #898B8D;
         width: 30px;
-        height: 30px;
+        height: 20px;
         border-radius: 5;
     }
 
@@ -259,7 +259,7 @@ sliderStyle5 = """
     QSlider::handle:horizontal {
         background: #898B8D;
         width: 30px;
-        height: 30px;
+        height: 20px;
         border-radius: 5;
     }
 
@@ -433,6 +433,28 @@ lineEditStyle = """
         font-weight: 600;
         color:#222222;
     }
+    QLineEdit:disabled{
+        border:2px solid #111111;
+        background: #111111;
+        color:#444444;
+    }
+    QMenu {
+        background: #898B8D;
+        padding:8px 3px 5px;
+        font-size:15px;
+        font-weight: 600;
+        color:#222222;
+    }
+    QMenu::item{
+        margin:2px;
+        padding:5px;
+    }
+    QMenu::item::selected {
+        background-color: #5E6264;
+    }
+    QMenu::item::disabled {
+        color:#4E5254
+    }
 """
 
 scrollBarStyle = """
@@ -568,21 +590,39 @@ menuStyle = """
     QMenu::item::selected {
         background-color: #5E6264;
     }
+    QMenu::item::disabled {
+        color:#4E5254
+    }
 """
 
-progressbarStyle = """
+progressbarStyle1 = """
     QProgressBar{
         border: 2px solid #898B8D;
-      border-radius: 3px;
-      background-color: #222222;
-      margin:3px 3px 3px;
-      text-align: center;
-      color:#CCCCCC;
+        border-radius: 3px;
+        background-color: #222222;
+        margin:3px 3px 3px;
+        text-align: center;
+        color:#CCCCCC;
     }
-     QProgressBar::chunk {
-     background-color: #40874A;
-     width: 1px;
- }
+    QProgressBar::chunk {
+        background-color: #40874A;
+        width: 1px;
+    }
+"""
+
+progressbarStyle2 = """
+    QProgressBar{
+        border: 2px solid #898B8D;
+        border-radius: 3px;
+        background-color: #222222;
+        margin:3px 3px 3px;
+        text-align: center;
+        color:#CCCCCC;
+    }
+    QProgressBar::chunk {
+        background-color: #3C6691;
+        width: 1px;
+    }
 """
 
 textBrowserStyle = """

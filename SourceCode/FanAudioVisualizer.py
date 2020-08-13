@@ -16,7 +16,7 @@ class AudioAnalyzer:
         self.fq_up = fq_up
         self.bins = bins
         self.low_range = np.clip(low_range / 100, 0.0, 1.0)
-        if not smooth:
+        if smooth:
             self.smooth = smooth
         else:
             self.smooth = 0
@@ -229,8 +229,8 @@ class AudioVisualizer:
     def __init__(self, img, rad_min, rad_max, line_thick=1.0, blur=5, style=0):
         self.background = img.copy()
         self.width, self.height = self.background.size
-        self.mdpx = self.width / 2
-        self.mdpy = self.height / 2
+        self.render_size = min(self.width, self.height)
+        self.mdpx, self.mdpy = self.render_size / 2, self.render_size / 2
         self.line_thick = line_thick
         if style in [1, 2, 4, 6, 7, 11, 12, 15, 16, 21, 22]:
             self.rad_min = rad_min + line_thick * 1.5
@@ -252,7 +252,7 @@ class AudioVisualizer:
         self.style = style
 
     def getFrame(self, hist, amplify=5, color_mode="color4x", bright=1.0, saturation=1.0, use_glow=True, rotate=0.0,
-                 fps=30.0, frame_pt=0, bg_mode=0, fg_img=None, fg_resize=1.0, quality=3):
+                 fps=30.0, frame_pt=0, bg_mode=0, fg_img=None, fg_resize=1.0, quality=3, preview=False):
         bins = hist.shape[0]
 
         quality_list = [1, 1, 2, 2, 4, 8]
@@ -262,12 +262,7 @@ class AudioVisualizer:
         line_thick_bold = int(round(self.line_thick * ratio * 1.5))
         line_thick_slim = int(round(self.line_thick * ratio / 2))
 
-        brt = int(round(bright * 255))
-        if brt > 255:
-            brt = 255
-        elif brt < 0:
-            brt = 0
-        canvas = Image.new('RGBA', (self.width * ratio, self.height * ratio), (brt, brt, brt, 0))
+        canvas = Image.new('RGBA', (self.render_size * ratio, self.render_size * ratio), (255, 255, 255, 0))
         draw = ImageDraw.Draw(canvas)
 
         line_graph_prev = None
@@ -538,27 +533,17 @@ class AudioVisualizer:
         if use_glow:
             canvas = glowFx(canvas, self.blur * ratio, 1.5)
 
-        canvas = canvas.resize((self.width, self.height), Image.ANTIALIAS)
-
-        output = self.background.copy()
-        output.paste(canvas, (0, 0), canvas)
+        canvas = canvas.resize((self.render_size, self.render_size), Image.ANTIALIAS)
 
         if fg_img is not None and bg_mode > -2 and (not bg_mode == 2):
             if rotate != 0:
                 angle = -(rotate * frame_pt / fps / 60) * 360
-                rotate_img = fg_img.rotate(angle, resample=Image.BICUBIC)
-                if fg_resize != 1.0:
-                    rotate_img = resizeRatio(rotate_img, fg_resize)
-                output = pasteMiddle(rotate_img, output, glow=False, blur=0, bright=1)
+                fg_img = fg_img.rotate(angle, resample=Image.BICUBIC)
+            if fg_resize != 1.0:
+                fg_img = resizeRatio(fg_img, fg_resize)
+            canvas = pasteMiddle(fg_img, canvas)
 
-            if rotate == 0:
-                if self.style in [9, 10, 11, 12, 13, 14, 15, 16, 17] or fg_resize != 0:
-                    if fg_resize != 1.0:
-                        output = pasteMiddle(resizeRatio(fg_img, fg_resize), output, glow=False, blur=0, bright=1)
-                    else:
-                        output = pasteMiddle(fg_img, output, glow=False, blur=0, bright=1)
-
-        return output
+        return pasteMiddle(canvas, self.background.copy())
 
     def getAxis(self, bins, index, radius, ratio):
         div = 2 * np.pi / bins
@@ -579,8 +564,9 @@ def linearRange(startx, endx, starty, endy, x):
     return (endy - starty) / (endx - startx) * (x - startx) + starty
 
 
-psy_map = [[10, 32, 3.0, 0.8],
-           [32, 64, 0.8, 1.0],
+psy_map = [[10, 32, 3.0, 2.5],
+           [32, 48, 2.5, 1.0],
+           [48, 64, 1.0, 1.0],
            [64, 150, 1.0, 1.3],
            [150, 2000, 1.3, 1.0],
            [2000, 8000, 1.0, 1.2],
@@ -595,4 +581,5 @@ def psyModel(freq):  # Get psychoacoustical model
 
 
 if __name__ == '__main__':
-    print(linearRange(8000, 20000, 1, 0, 10000))
+    #print(linearRange(8000, 20000, 1, 0, 10000))
+    pass

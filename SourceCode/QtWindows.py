@@ -537,18 +537,19 @@ class ImageSettingWindow(QtWidgets.QWidget):
         self.combo_spin = ComboBox(self, items_spin, self.combo_spin_select, self.lang["Spin Foreground"])
 
         VBlayout.addWidget(self.combo_spin)
-        VBlayout.addWidget(genLabel(self, self.lang["Spin Speed (rpm)"]))
+        self.lb_speed = genLabel(self, self.lang["Spin Speed (rpm)"])
+        VBlayout.addWidget(self.lb_speed)
 
-        self.le_speed = LineEdit(self, self.lang["<Spin Speed>"], self.combo_spin_select, [-200, 200], False, 1.0)
+        self.le_speed = LineEdit(self, self.lang["<Spin Speed>"], self.le_speed_check, [-200, 200], False, 1.0)
         VBlayout.addWidget(self.le_speed)
 
-        VBlayout.addWidget(HintLabel(self, self.lang["Oscillate Foreground"], 2, img_pack["what"],
-                                     self.lang["Oscillate FG image accroding to the bass."] + "\n\n" + \
-                                     self.lang["Oscillate FG to Bass (%)"] + ": " + \
-                                     self.lang["Sensitivity of the bass (beat) detector."] + "\n" + \
-                                     self.lang["Bass Frequency Range (%)"] + ": " + \
-                                     self.lang["Relative frequency of bass to analyzer frequency range."]
-                                     ))
+        self.lb_beat = HintLabel(self, self.lang["Oscillate Foreground"], 2, img_pack["what"],
+                                 self.lang["Oscillate FG image accroding to the bass."] + "\n\n" + \
+                                 self.lang["Oscillate FG to Bass (%)"] + ": " + \
+                                 self.lang["Sensitivity of the bass (beat) detector."] + "\n" + \
+                                 self.lang["Bass Frequency Range (%)"] + ": " + \
+                                 self.lang["Relative frequency of bass to analyzer frequency range."])
+        VBlayout.addWidget(self.lb_beat)
 
         self.sl_beat_detect = FSlider(self, self.lang["Oscillate FG to Bass (%)"], 0, 100, 1, 1,
                                       self.sl_beat_detect_release, None)
@@ -567,19 +568,36 @@ class ImageSettingWindow(QtWidgets.QWidget):
         bg_setv = self.combo_bg_mode.getValue()
         self.parent.vdic["blur_bg"] = bg_setv[0]
         self.parent.vdic["bg_mode"] = bg_setv[1]
-        self.parent.refreshAll()
+        self.visible_check()
+        if self.isVisible():
+            self.parent.refreshAll()
 
     def combo_spin_select(self):
         if self.isVisible():
             direction = self.combo_spin.getValue()
             speed = self.le_speed.numCheck()
-            if speed < 0:
-                speed = speed * -1
-                self.le_speed.setText(str(speed))
-                self.combo_spin.setValue(-1)
-                direction = -1
+            if direction == 0 and speed != 0:
+                self.le_speed.setText(str(0))
+                speed = 0
+            elif direction != 0 and speed == 0:
+                self.le_speed.setText(str(1.0))
+                speed = 1.0
             self.parent.vdic["rotate"] = direction * speed
-            self.parent.refreshLocal()
+            if self.isVisible():
+                self.parent.refreshLocal()
+
+    def le_speed_check(self):
+        direction = self.combo_spin.getValue()
+        speed = self.le_speed.numCheck()
+        if speed < 0:
+            speed = speed * -1
+            self.le_speed.setText(str(speed))
+            self.combo_spin.setValue(-direction)
+        elif speed > 0 and direction == 0:
+            self.combo_spin.setValue(1)
+        elif speed == 0 and direction != 0:
+            self.combo_spin.setValue(0)
+        self.combo_spin_select()
 
     def sl_low_range_release(self):
         self.parent.vdic["low_range"] = self.sl_low_range.getValue()
@@ -591,6 +609,16 @@ class ImageSettingWindow(QtWidgets.QWidget):
         else:
             self.sl_low_range.setStyle(1)
         self.parent.refreshLocal()
+
+    def visible_check(self):
+        bg_mode = self.parent.vdic["bg_mode"]
+        elems = [self.combo_spin, self.lb_speed, self.le_speed, self.lb_beat, self.sl_beat_detect, self.sl_low_range]
+        if bg_mode >= -1 and not bg_mode == 2:
+            for elem in elems:
+                elem.show()
+        else:
+            for elem in elems:
+                elem.hide()
 
     def show(self):
         self.parent.hideAllMenu()
@@ -610,6 +638,7 @@ class ImageSettingWindow(QtWidgets.QWidget):
             self.sl_low_range.setStyle(0)
         else:
             self.sl_low_range.setStyle(1)
+        self.visible_check()
         super().show()
 
     def btn_back_release(self):
@@ -892,7 +921,7 @@ class BlendWindow(QtWidgets.QWidget):
         self.prgbar.setMaximum(1000)
         self.prgbar.setMinimum(0)
         self.prgbar.setValue(0)
-        self.prgbar.setStyleSheet(progressbarStyle)
+        self.prgbar.setStyleSheet(progressbarStyle1)
         VBlayout.addWidget(self.prgbar)
         self.prgbar.hide()
 
@@ -936,8 +965,7 @@ class BlendWindow(QtWidgets.QWidget):
             self.showFilePath()
 
     def showFilePath(self):
-        if (self.parent.vdic["output_path"] is not None) and \
-                (self.parent.vdic["filename"] is not None):
+        if (self.parent.vdic["output_path"] is not None) and (self.parent.vdic["filename"] is not None):
             fullpath = joinPath(self.parent.vdic["output_path"], self.parent.vdic["filename"])
             if self.parent.vdic["bg_mode"] >= 0:
                 fullpath = convertFileFormat(fullpath, "mp4")

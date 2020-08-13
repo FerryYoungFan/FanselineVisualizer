@@ -100,8 +100,12 @@ class PhotoViewer(QtWidgets.QGraphicsView):
         if not self.parent.isRunning:
             refresh = menu.addAction(self.lang["Refresh Preview"])
             menu.addSeparator()
+            save_prj = menu.addAction(self.lang["Save Project"])
+            load_prj = menu.addAction(self.lang["Load Project"])
+            menu.addSeparator()
         else:
             refresh = None
+
         savepng = menu.addAction(self.lang["Save as PNG"])
         savejpg = menu.addAction(self.lang["Save as JPG"])
         savebmp = menu.addAction(self.lang["Save as BMP"])
@@ -109,8 +113,14 @@ class PhotoViewer(QtWidgets.QGraphicsView):
         action = menu.exec_(self.mapToGlobal(event.pos()))
 
         if self.dragMode() == QtWidgets.QGraphicsView.ScrollHandDrag and self.img_cache is not None:
-            if not self.parent.isRunning and action == refresh:
-                self.parent.refreshAll()
+            if not self.parent.isRunning:
+                if action == refresh:
+                    self.parent.refreshAll()
+                elif action == save_prj:
+                    self.parent.saveProject()
+                elif action == load_prj:
+                    self.parent.loadProject()
+
             elif action == savepng:
                 file_, filetype = QtWidgets.QFileDialog.getSaveFileName(self,
                                                                         self.lang["Save as PNG"],
@@ -265,7 +275,7 @@ class ImageSelector(QtWidgets.QWidget):
     def btn_open_release(self):
         selector = self.lang["Image Files"] + self.image_formats
         selector = selector + self.lang["All Files"] + " (*.*)"
-        if self.image_path is not None and os.path.exists(self.image_path):
+        if self.image_path is not None and isinstance(self.image_path,str) and os.path.exists(self.image_path):
             folder = self.image_path
         else:
             folder = ""

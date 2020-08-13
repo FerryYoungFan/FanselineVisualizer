@@ -61,7 +61,7 @@ class MainWindow(QtWidgets.QWidget):
         self.audio_formats_arr = getFormats(self.audio_formats)
         self.video_formats = " (*.mp4;*.wmv;*.avi;*.flv;*.mov;*.mkv;*.rm;*.rmvb);;"
         self.video_formats_arr = getFormats(self.video_formats)
-        self.image_formats = " (*.jpg;*.jpeg;*.png;*.gif;*.bmp;*.ico;*.dib;*.webp;*.tiff;*.tga);;"
+        self.image_formats = " (*.jpg;*.jpeg;*.png;*.gif;*.bmp;*.ico;*.dib;*.webp;*.tiff;*.tga;*.icns);;"
         self.image_formats_arr = getFormats(self.image_formats)
 
         left = QtWidgets.QFrame(self)
@@ -154,7 +154,9 @@ class MainWindow(QtWidgets.QWidget):
     def fileEvent(self, path):
         if self.canDrop:
             suffix = getFileSuffix(path)[1:].lower()
-            if suffix in self.audio_formats_arr or suffix in self.video_formats_arr:
+            if suffix == "fvsav":
+                self.loadProject(path)
+            elif suffix in self.audio_formats_arr or suffix in self.video_formats_arr:
                 self.mainMenu.le_audio_path.setText(path)
                 self.mainMenu.checkFilePath()
             elif suffix in self.image_formats_arr:
@@ -325,10 +327,13 @@ class MainWindow(QtWidgets.QWidget):
         info = self.getBrief()
         if self.infoBridge.total != 0 and self.infoBridge.value == 0:
             self.blendWindow.prgbar.setValue(int(self.infoBridge.prepare * 1000))
+            self.blendWindow.prgbar.setStyleSheet(progressbarStyle2)
         elif self.infoBridge.total != 0 and 0 < self.infoBridge.value < self.infoBridge.total:
             self.blendWindow.prgbar.setValue(int(self.infoBridge.value / self.infoBridge.total * 1000))
+            self.blendWindow.prgbar.setStyleSheet(progressbarStyle1)
         elif self.infoBridge.total != 0 and self.infoBridge.value >= self.infoBridge.total:
             self.blendWindow.prgbar.setValue(int(self.infoBridge.combine * 1000))
+            self.blendWindow.prgbar.setStyleSheet(progressbarStyle2)
         else:
             self.blendWindow.prgbar.setValue(0)
         if self.fb.isRunning or self.isRunning:
@@ -380,6 +385,50 @@ class MainWindow(QtWidgets.QWidget):
             self.setWindowTitle(self.windowName)
             self.blendWindow.freezeWindow(False)
 
+    def saveProject(self):
+        if self.vdic["output_path"]:
+            if self.vdic["filename"]:
+                fpath = self.vdic["output_path"] + getFileName(self.vdic["sound_path"], False)
+            else:
+                fpath = self.vdic["output_path"]
+        else:
+            fpath = ""
+        file_, filetype = QtWidgets.QFileDialog.getSaveFileName(self,
+                                                                self.lang["Save Project as..."],
+                                                                fpath + ".fvsav",
+                                                                self.lang["FV Project Files"] + " (*.fvsav)")
+        if file_:
+            saveConfig(file_)
+
+    def loadProject(self, drag_path=None):
+        if drag_path is None:
+            selector = self.lang["FV Project Files"] + " (*.fvsav);;"
+            selector = selector + self.lang["All Files"] + " (*.*)"
+            if self.vdic["output_path"]:
+                fpath = self.vdic["output_path"]
+            else:
+                fpath = ""
+            file_, filetype = QtWidgets.QFileDialog.getOpenFileName(self, self.lang["Open Project File..."], fpath,
+                                                                    selector)
+            if not file_:
+                print("No File!")
+            else:
+                vdic_open = loadConfig(file_)
+                if vdic_open:
+                    self.vdic = vdic_open
+                    self.mainMenu.show()
+                    self.refreshAll()
+                else:
+                    showInfo(self, self.lang["File Error"], self.lang["Cannot Read this Project!"])
+        else:
+            vdic_open = loadConfig(drag_path)
+            if vdic_open:
+                self.vdic = vdic_open
+                self.mainMenu.show()
+                self.refreshAll()
+            else:
+                showInfo(self, self.lang["File Error"], self.lang["Cannot Read this Project!"])
+
     def closeEvent(self, event):
         global close_app
         if self.isRunning:
@@ -417,7 +466,7 @@ lang_code = "en"
 lang = lang_en
 vdic_pre = {
     "image_path": getPath("Source/fallback.png"),
-    "bg_path": None,
+    "bg_path": (200, 200, 200, 200),
     "sound_path": None,
     "logo_path": getPath("Source/logo.png"),
     "output_path": None,
@@ -434,7 +483,7 @@ vdic_pre = {
     "bright": 0.6,
     "saturation": 0.5,
     "scalar": 1.0,
-    "smooth": 5,
+    "smooth": 4,
     "style": 0,
     "linewidth": 1.0,
     "width": 480,
@@ -457,28 +506,58 @@ first_run = True
 reset_lang = False
 
 
-def loadConfig():
+def loadConfig(user_path=None):
     global config, lang, lang_code, vdic, first_run
-    try:
-        with open(config_path, "rb") as handle:
-            config = pickle.load(handle)
-            if config["__version__"] != __version__:
-                raise Exception("VersionError")
-            lang_code = config["lang_code"]
-            print(config)
-            first_run = False
-    except:
-        print("no config")
-        return False
-    vdic = config["vdic"]
-    if lang_code == "cn_s":
-        lang = lang_cn_s
+    if user_path is None:
+        f_path = config_path
     else:
-        lang = lang_en
+        f_path = user_path
+    if user_path is None:
+        try:
+            with open(f_path, "rb") as handle:
+                config = pickle.load(handle)
+                if config["__version__"] != __version__:
+                    raise Exception("VersionError")
+                lang_code = config["lang_code"]
+                print(config)
+                first_run = False
+        except:
+            print("no config")
+            return False
+    else:
+        try:
+            with open(f_path, "rb") as handle:
+                config = pickle.load(handle)
+                print("Loaded Project Version: " + config["__version__"])
+                print(config)
+                first_run = False
+        except:
+            return None
+
+    vdic_read = config["vdic"]
+
+    for key, value in vdic_read.items():
+        try:
+            vdic[key] = vdic_read[key]
+        except:
+            pass
+
+    if user_path is None:
+        if lang_code == "cn_s":
+            lang = lang_cn_s
+        else:
+            lang = lang_en
+    else:
+        return vdic.copy()
 
 
-def saveConfig():
+def saveConfig(user_path=None):
     global config, lang, lang_code, vdic, vdic_pre, appMainWindow
+    if user_path is None:
+        f_path = config_path
+    else:
+        f_path = user_path
+
     try:
         lang_code = appMainWindow.lang_code
         vdic = appMainWindow.vdic
@@ -492,9 +571,9 @@ def saveConfig():
         "vdic": vdic,
     }
     try:
-        with open(config_path, 'wb') as handle:
+        with open(f_path, 'wb') as handle:
             pickle.dump(config, handle, protocol=pickle.HIGHEST_PROTOCOL)
-        with open(config_path, "rb") as handle:
+        with open(f_path, "rb") as handle:
             config_test = pickle.load(handle)
             if config_test["__version__"] != __version__:
                 raise Exception("AuthorityError")
